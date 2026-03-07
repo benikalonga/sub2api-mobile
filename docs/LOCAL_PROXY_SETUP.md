@@ -27,6 +27,18 @@ npm run proxy
 npm run web
 ```
 
+## 打包优化开关
+
+当前项目已在 `metro.config.js` 打开更积极的导入优化，并建议在本地或 CI 增加：
+
+```bash
+EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1 \
+EXPO_UNSTABLE_TREE_SHAKING=1 \
+npx expo export --platform web
+```
+
+这组环境变量更适合生产打包或包体分析，不建议把日常开发体验和正式构建混在一起看。
+
 ## 一条命令同时启动
 
 ```bash

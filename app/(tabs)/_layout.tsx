@@ -1,9 +1,17 @@
 import { Tabs } from 'expo-router';
-import { ActivitySquare, ChartNoAxesCombined, Users } from 'lucide-react-native';
+import { ChartNoAxesCombined, Settings2, Users } from 'lucide-react-native';
+
+import { adminConfigState } from '@/src/store/admin-config';
+
+const { useSnapshot } = require('valtio/react');
 
 export default function TabsLayout() {
+  const config = useSnapshot(adminConfigState);
+  const hasAccount = Boolean(config.baseUrl.trim());
+
   return (
     <Tabs
+      initialRouteName={hasAccount ? 'monitor' : 'settings'}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#1d5f55',
@@ -20,6 +28,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="monitor"
+        options={{
           title: '概览',
           tabBarIcon: ({ color, size }) => <ChartNoAxesCombined color={color} size={size} />,
         }}
@@ -32,13 +46,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="monitor"
+        name="settings"
         options={{
-          title: '运维监控',
-          tabBarIcon: ({ color, size }) => <ActivitySquare color={color} size={size} />,
+          title: '服务器',
+          tabBarIcon: ({ color, size }) => <Settings2 color={color} size={size} />,
         }}
       />
-      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="groups" options={{ href: null }} />
       <Tabs.Screen name="keys" options={{ href: null }} />
       <Tabs.Screen name="accounts" options={{ href: null }} />

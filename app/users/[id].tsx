@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Clipboard from 'expo-clipboard';
-import { ArrowLeftRight, ChevronLeft, Copy, Eye, EyeOff, KeyRound, Search, Wallet } from 'lucide-react-native';
+import { ArrowLeftRight, ChevronLeft, Copy, KeyRound, Search, Wallet } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 
 import { DetailRow } from '@/src/components/detail-row';
 import { ListCard } from '@/src/components/list-card';
+import { formatDisplayTime } from '@/src/lib/formatters';
 import { ScreenShell } from '@/src/components/screen-shell';
+import { useDebouncedValue } from '@/src/hooks/use-debounced-value';
 import { getUser, getUserUsage, listUserApiKeys, updateUserBalance } from '@/src/services/admin';
 import type { BalanceOperation } from '@/src/types/admin';
 
@@ -26,10 +28,10 @@ export default function UserDetailScreen() {
   const userId = Number(id);
   const queryClient = useQueryClient();
   const [operation, setOperation] = useState<BalanceOperation>('add');
-  const [keySearch, setKeySearch] = useState('');
+  const [keySearchText, setKeySearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [visibleKeys, setVisibleKeys] = useState<Record<number, boolean>>({});
   const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
+  const keySearch = useDebouncedValue(keySearchText.trim().toLowerCase(), 250);
   const { control, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -73,19 +75,22 @@ export default function UserDetailScreen() {
   const user = userQuery.data;
   const usage = usageQuery.data;
   const apiKeys = apiKeysQuery.data?.items ?? [];
-  const filteredApiKeys = apiKeys.filter((item) => {
-    const matchesStatus = statusFilter === 'all' ? true : item.status === statusFilter;
-    const keyword = keySearch.trim().toLowerCase();
-    const matchesSearch = !keyword
-      ? true
-      : [item.name, item.key, item.group?.name]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(keyword);
+  const filteredApiKeys = useMemo(
+    () =>
+      apiKeys.filter((item) => {
+        const matchesStatus = statusFilter === 'all' ? true : item.status === statusFilter;
+        const matchesSearch = !keySearch
+          ? true
+          : [item.name, item.key, item.group?.name]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase()
+              .includes(keySearch);
 
-    return matchesStatus && matchesSearch;
-  });
+        return matchesStatus && matchesSearch;
+      }),
+    [apiKeys, keySearch, statusFilter]
+  );
 
   function maskKey(value: string) {
     if (!value || value.length < 16) {
@@ -104,7 +109,9 @@ export default function UserDetailScreen() {
   return (
     <ScreenShell
       title={user?.username || user?.email || '用户详情'}
-      subtitle="核心看余额和 token 用量，其他内容尽量保持轻量。"
+      subtitle=""
+      titleAside={<Text className="text-[11px] text-[#a2988a]">用户余额、用量与密钥概览。</Text>}
+      variant="minimal"
       right={
         <Pressable className="h-11 w-11 items-center justify-center rounded-full bg-[#2d3134]" onPress={() => router.back()}>
           <ChevronLeft color="#f6f1e8" size={18} />
@@ -115,7 +122,7 @@ export default function UserDetailScreen() {
         <DetailRow label="角色" value={user?.role || '--'} />
         <DetailRow label="余额" value={Number(user?.balance ?? 0).toFixed(2)} />
         <DetailRow label="并发" value={`${user?.concurrency ?? 0}`} />
-        <DetailRow label="更新时间" value={user?.updated_at || '--'} />
+        <DetailRow label="更新时间" value={formatDisplayTime(user?.updated_at)} />
       </ListCard>
 
       <ListCard title="月度用量" meta="真实数据来自 /users/:id/usage" icon={ArrowLeftRight}>
@@ -129,8 +136,8 @@ export default function UserDetailScreen() {
           <View className="flex-row items-center rounded-[18px] bg-[#f1ece2] px-4 py-3">
             <Search color="#7d7468" size={16} />
             <TextInput
-              value={keySearch}
-              onChangeText={setKeySearch}
+              defaultValue=""
+              onChangeText={setKeySearchText}
               placeholder="搜索 key 名称或分组"
               placeholderTextColor="#9b9081"
               className="ml-3 flex-1 text-sm text-[#16181a]"
@@ -156,19 +163,16 @@ export default function UserDetailScreen() {
                 <Text className="text-xs uppercase tracking-[1.2px] text-[#7d7468]">{item.status}</Text>
               </View>
               <View className="mt-2 flex-row items-center gap-2">
-                <Text className="flex-1 text-xs text-[#7d7468]">{visibleKeys[item.id] ? item.key : maskKey(item.key)}</Text>
+                <Text className="flex-1 text-xs text-[#7d7468]">{maskKey(item.key)}</Text>
                 <Pressable
                   className="rounded-full bg-[#e7dfcf] p-2"
-                  onPress={() => setVisibleKeys((current) => ({ ...current, [item.id]: !current[item.id] }))}
+                  onPress={() => copyKey(item.id, item.key)}
                 >
-                  {visibleKeys[item.id] ? <EyeOff color="#4e463e" size={14} /> : <Eye color="#4e463e" size={14} />}
-                </Pressable>
-                <Pressable className="rounded-full bg-[#1b1d1f] p-2" onPress={() => copyKey(item.id, item.key)}>
-                  <Copy color="#f6f1e8" size={14} />
+                  <Copy color="#4e463e" size={14} />
                 </Pressable>
               </View>
               <Text className="mt-2 text-xs text-[#7d7468]">
-                {copiedKeyId === item.id ? '已复制到剪贴板' : `最近使用 ${item.last_used_at || '--'}`}
+                {copiedKeyId === item.id ? '已复制到剪贴板' : `最近使用 ${formatDisplayTime(item.last_used_at)}`}
               </Text>
               <Text className="mt-2 text-xs text-[#7d7468]">
                 已用 ${Number(item.quota_used ?? 0).toFixed(2)} / 配额 {item.quota ? `$${Number(item.quota).toFixed(2)}` : '无限制'}
@@ -202,14 +206,14 @@ export default function UserDetailScreen() {
             {(['add', 'subtract', 'set'] as BalanceOperation[]).map((item) => (
               <Pressable
                 key={item}
-                className={operation === item ? 'flex-1 rounded-[16px] bg-[#1d5f55] px-3 py-3' : 'flex-1 rounded-[16px] bg-[#e7dfcf] px-3 py-3'}
-                onPress={() => setOperation(item)}
-              >
-                <Text className={operation === item ? 'text-center text-sm font-semibold text-white' : 'text-center text-sm font-semibold text-[#4e463e]'}>
-                  {item === 'add' ? '增加' : item === 'subtract' ? '扣减' : '设为'}
-                </Text>
-              </Pressable>
-            ))}
+                  className={operation === item ? 'flex-1 rounded-[16px] bg-[#1d5f55] px-3 py-3' : 'flex-1 rounded-[16px] bg-[#e7dfcf] px-3 py-3'}
+                  onPress={() => setOperation(item)}
+                >
+                  <Text className={operation === item ? 'text-center text-sm font-semibold text-white' : 'text-center text-sm font-semibold text-[#4e463e]'}>
+                    {item === 'add' ? '增加' : item === 'subtract' ? '扣减' : '设为'}
+                  </Text>
+                </Pressable>
+              ))}
           </View>
           <Controller
             control={control}

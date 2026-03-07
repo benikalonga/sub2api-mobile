@@ -1,34 +1,49 @@
 {
   "expo": {
-    "name": "x-sapi-mobile",
-    "slug": "x-sapi-mobile",
+    "name": "sub2api-mobile",
+    "slug": "sub2api-mobile",
+    "owner": "your-expo-username",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./icons/ios/AppIcon.appiconset/icon-1024.png",
     "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/00000000-0000-0000-0000-000000000000"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./icons/ios/AppIcon.appiconset/icon-1024.png",
+      "bundleIdentifier": "com.ppx.sub2apimobile"
     },
     "android": {
+      "icon": "./icons/android/playstore-icon.png",
+      "package": "com.ppx.sub2apimobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./icons/android/playstore-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./icons/ios/AppIcon.appiconset/icon-1024.png"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      }
+    }
   }
 }

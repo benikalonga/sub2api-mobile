@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { DetailRow } from '@/src/components/detail-row';
 import { LineTrendChart } from '@/src/components/line-trend-chart';
 import { ListCard } from '@/src/components/list-card';
+import { formatDisplayTime, formatTokenValue } from '@/src/lib/formatters';
 import { ScreenShell } from '@/src/components/screen-shell';
 import { getAccount, getAccountTodayStats, getDashboardTrend, refreshAccount, setAccountSchedulable, testAccount } from '@/src/services/admin';
 
@@ -81,11 +82,11 @@ export default function AccountDetailScreen() {
         <DetailRow label="优先级" value={`${account?.priority ?? 0}`} />
         <DetailRow label="并发" value={`${account?.concurrency ?? 0}`} />
         <DetailRow label="当前并发" value={`${account?.current_concurrency ?? 0}`} />
-        <DetailRow label="最后使用" value={account?.last_used_at || '--'} />
+        <DetailRow label="最后使用" value={formatDisplayTime(account?.last_used_at)} />
       </ListCard>
 
       <ListCard title="今日统计" meta="真实数据来自 /accounts/:id/today-stats" icon={ShieldCheck}>
-        <DetailRow label="Token" value={`${todayStats?.tokens ?? 0}`} />
+        <DetailRow label="Token" value={formatTokenValue(todayStats?.tokens ?? 0)} />
         <DetailRow label="请求数" value={`${todayStats?.requests ?? 0}`} />
         <DetailRow label="成本" value={`$${Number(todayStats?.cost ?? 0).toFixed(4)}`} />
       </ListCard>
@@ -96,7 +97,7 @@ export default function AccountDetailScreen() {
           subtitle="按账号过滤后的真实 token 趋势"
           points={trendPoints}
           color="#c96d43"
-          formatValue={(value) => `${Math.round(value / 1000)}k`}
+          formatValue={formatTokenValue}
         />
       ) : null}
 

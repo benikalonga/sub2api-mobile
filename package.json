@@ -1,5 +1,5 @@
 {
-  "name": "x-sapi-mobile",
+  "name": "sub2api-mobile",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -8,7 +8,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "proxy": "node server/index.js",
-    "dev:web-proxy": "concurrently -n proxy,web -c green,blue \"npm run proxy\" \"npm run web\""
+    "dev:web-proxy": "concurrently -n proxy,web -c green,blue \"npm run proxy\" \"npm run web\"",
+    "eas:build:preview": "eas build --profile preview",
+    "eas:build:production": "eas build --profile production",
+    "eas:update:preview": "eas update --branch preview --message",
+    "eas:update:production": "eas update --branch production --message"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -42,6 +46,7 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "concurrently": "^9.2.1",
+    "eas-cli": "^18.1.0",
     "typescript": "~5.9.2"
   },
   "private": true

@@ -12,6 +12,7 @@ type LineTrendChartProps = {
   title: string;
   subtitle: string;
   formatValue?: (value: number) => string;
+  compact?: boolean;
 };
 
 export function LineTrendChart({
@@ -20,9 +21,10 @@ export function LineTrendChart({
   title,
   subtitle,
   formatValue = (value) => `${value}`,
+  compact = false,
 }: LineTrendChartProps) {
   const width = 320;
-  const height = 160;
+  const height = compact ? 104 : 144;
   const maxValue = Math.max(...points.map((point) => point.value), 1);
   const minValue = Math.min(...points.map((point) => point.value), 0);
   const range = Math.max(maxValue - minValue, 1);
@@ -38,14 +40,17 @@ export function LineTrendChart({
 
   const area = `${line} L ${width} ${height} L 0 ${height} Z`;
   const latest = points[points.length - 1]?.value ?? 0;
+  const maxTicks = compact ? 6 : 7;
+  const tickStep = Math.max(Math.ceil(points.length / maxTicks), 1);
+  const tickPoints = points.filter((_, index) => index === 0 || index === points.length - 1 || index % tickStep === 0);
 
   return (
-    <View className="rounded-[28px] bg-[#fbf8f2] p-5">
+    <View className="rounded-[18px] bg-[#fbf8f2] p-4">
       <Text className="text-xs uppercase tracking-[1.6px] text-[#7d7468]">{title}</Text>
-      <Text className="mt-2 text-3xl font-bold text-[#16181a]">{formatValue(latest)}</Text>
-      <Text className="mt-1 text-sm text-[#7d7468]">{subtitle}</Text>
+      <Text className={`mt-1 font-bold text-[#16181a] ${compact ? 'text-[22px]' : 'text-[28px]'}`}>{formatValue(latest)}</Text>
+      <Text numberOfLines={1} className="mt-1 text-xs text-[#8a8072]">{subtitle}</Text>
 
-      <View className="mt-5 overflow-hidden rounded-[20px] bg-[#f4efe4] p-3">
+      <View className={`overflow-hidden rounded-[14px] bg-[#f4efe4] p-3 ${compact ? 'mt-3' : 'mt-4'}`}>
         <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
           <Defs>
             <LinearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
@@ -57,9 +62,9 @@ export function LineTrendChart({
           <Path d={line} fill="none" stroke={color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
         </Svg>
 
-        <View className="mt-3 flex-row justify-between">
-          {points.map((point) => (
-            <Text key={point.label} className="text-xs text-[#7d7468]">
+        <View className="mt-2 flex-row justify-between">
+          {tickPoints.map((point) => (
+            <Text key={point.label} className={`text-[#7d7468] ${compact ? 'text-[10px]' : 'text-xs'}`}>
               {point.label}
             </Text>
           ))}
