@@ -62,6 +62,8 @@ yarn-error.*
 .vibe/
 .windsurf/
 .zencoder/
+skills/
+skills-lock.json
 
 # typescript
 *.tsbuildinfo
