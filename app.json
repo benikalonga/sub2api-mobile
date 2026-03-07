@@ -21,7 +21,10 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./icons/ios/AppIcon.appiconset/icon-1024.png",
-      "bundleIdentifier": "com.ppx.sub2apimobile"
+      "bundleIdentifier": "com.ppx.sub2apimobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "icon": "./icons/android/playstore-icon.png",
