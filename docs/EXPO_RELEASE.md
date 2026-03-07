@@ -26,6 +26,22 @@ npx eas whoami
 npm run eas:build:preview
 ```
 
+## Dev Client / 模拟器测试
+
+开发构建：
+
+```bash
+npm run eas:build:development
+```
+
+当前 `development` profile 已配置：
+
+- `developmentClient: true`
+- `distribution: internal`
+- `ios.simulator: true`
+
+适合先生成一个测试壳，后续再配合 `Expo / EAS Update` 做快速验证。
+
 ## GitHub Actions 构建
 
 仓库已提供工作流：`.github/workflows/eas-build.yml`
