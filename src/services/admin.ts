@@ -8,13 +8,15 @@ import type {
   AdminUser,
   BalanceOperation,
   DashboardModelStats,
+  DashboardSnapshot,
   DashboardStats,
   DashboardTrend,
   PaginatedData,
+  UsageStats,
   UserUsageSummary,
 } from '@/src/types/admin';
 
-function buildQuery(params: Record<string, string | number | boolean | undefined>) {
+function buildQuery(params: Record<string, string | number | boolean | null | undefined>) {
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -49,6 +51,38 @@ export function getDashboardTrend(params: {
 
 export function getDashboardModels(params: { start_date: string; end_date: string }) {
   return adminFetch<DashboardModelStats>(`/api/v1/admin/dashboard/models${buildQuery(params)}`);
+}
+
+export function getDashboardSnapshot(params: {
+  start_date: string;
+  end_date: string;
+  granularity?: 'day' | 'hour';
+  account_id?: number;
+  user_id?: number;
+  group_id?: number;
+  model?: string;
+  request_type?: string;
+  billing_type?: string | null;
+  include_stats?: boolean;
+  include_trend?: boolean;
+  include_model_stats?: boolean;
+  include_group_stats?: boolean;
+  include_users_trend?: boolean;
+}) {
+  return adminFetch<DashboardSnapshot>(`/api/v1/admin/dashboard/snapshot-v2${buildQuery(params)}`);
+}
+
+export function getUsageStats(params: {
+  start_date: string;
+  end_date: string;
+  user_id?: number;
+  account_id?: number;
+  group_id?: number;
+  model?: string;
+  request_type?: string;
+  billing_type?: string | null;
+}) {
+  return adminFetch<UsageStats>(`/api/v1/admin/usage/stats${buildQuery(params)}`);
 }
 
 export function listUsers(search = '') {

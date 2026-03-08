@@ -73,6 +73,30 @@ export type DashboardModelStats = {
   models: ModelStat[];
 };
 
+export type UsageStats = {
+  total_requests?: number;
+  total_tokens?: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_cost?: number;
+  total_actual_cost?: number;
+  total_account_cost?: number;
+  average_duration_ms?: number;
+};
+
+export type DashboardSnapshot = {
+  trend?: TrendPoint[];
+  models?: ModelStat[];
+  groups?: Array<{
+    group_id?: number;
+    group_name?: string;
+    requests?: number;
+    total_tokens?: number;
+    total_cost?: number;
+    total_actual_cost?: number;
+  }>;
+};
+
 export type AdminSettings = {
   site_name?: string;
   [key: string]: string | number | boolean | null | string[] | undefined;
@@ -88,6 +112,7 @@ export type AdminUser = {
   role?: string;
   current_concurrency?: number;
   notes?: string | null;
+  last_used_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };

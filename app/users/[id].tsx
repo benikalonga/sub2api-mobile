@@ -1,54 +1,256 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as Clipboard from 'expo-clipboard';
-import { ArrowLeftRight, ChevronLeft, Copy, KeyRound, Search, Wallet } from 'lucide-react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, Text, TextInput, View } from 'react-native';
-import { z } from 'zod';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DetailRow } from '@/src/components/detail-row';
-import { ListCard } from '@/src/components/list-card';
-import { formatDisplayTime } from '@/src/lib/formatters';
-import { ScreenShell } from '@/src/components/screen-shell';
-import { useDebouncedValue } from '@/src/hooks/use-debounced-value';
-import { getUser, getUserUsage, listUserApiKeys, updateUserBalance } from '@/src/services/admin';
-import type { BalanceOperation } from '@/src/types/admin';
+import { LineTrendChart } from '@/src/components/line-trend-chart';
+import { getDashboardSnapshot, getUsageStats, getUser, listUserApiKeys, updateUserBalance } from '@/src/services/admin';
+import type { AdminApiKey, BalanceOperation } from '@/src/types/admin';
 
-const schema = z.object({
-  amount: z.string().min(1, '请输入金额'),
-  notes: z.string().optional(),
-});
+const colors = {
+  page: '#f4efe4',
+  card: '#fbf8f2',
+  text: '#16181a',
+  subtext: '#6f665c',
+  border: '#e7dfcf',
+  primary: '#1d5f55',
+  dark: '#1b1d1f',
+  errorBg: '#f7e1d6',
+  errorText: '#a4512b',
+  muted: '#f7f1e6',
+};
 
-type FormValues = z.infer<typeof schema>;
+type RangeKey = '24h' | '7d' | '30d';
+
+const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
+  { key: '24h', label: '24H' },
+  { key: '7d', label: '7D' },
+  { key: '30d', label: '30D' },
+];
+
+function getDateRange(rangeKey: RangeKey) {
+  const end = new Date();
+  const start = new Date();
+
+  if (rangeKey === '24h') {
+    start.setHours(end.getHours() - 23, 0, 0, 0);
+  } else if (rangeKey === '30d') {
+    start.setDate(end.getDate() - 29);
+  } else {
+    start.setDate(end.getDate() - 6);
+  }
+
+  const toDate = (value: Date) => value.toISOString().slice(0, 10);
+
+  return {
+    start_date: toDate(start),
+    end_date: toDate(end),
+    granularity: rangeKey === '24h' ? ('hour' as const) : ('day' as const),
+  };
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    switch (error.message) {
+      case 'BASE_URL_REQUIRED':
+        return '请先到服务器页填写服务地址。';
+      case 'ADMIN_API_KEY_REQUIRED':
+        return '请先到服务器页填写 Admin Token。';
+      default:
+        return error.message;
+    }
+  }
+
+  return '加载失败，请稍后重试。';
+}
+
+function formatMoney(value?: number | null) {
+  return `$${Number(value ?? 0).toFixed(2)}`;
+}
+
+function formatUsageCost(stats?: { total_account_cost?: number | null; total_actual_cost?: number | null; total_cost?: number | null }) {
+  const value = Number(stats?.total_account_cost ?? stats?.total_actual_cost ?? stats?.total_cost ?? 0);
+  return `$${value.toFixed(4)}`;
+}
+
+function formatTokenValue(value?: number | null) {
+  const number = Number(value ?? 0);
+  if (number >= 1_000_000_000) return `${(number / 1_000_000_000).toFixed(2)}B`;
+  if (number >= 1_000_000) return `${(number / 1_000_000).toFixed(2)}M`;
+  if (number >= 1_000) return `${(number / 1_000).toFixed(2)}K`;
+  return new Intl.NumberFormat('en-US').format(number);
+}
+
+
+function formatQuota(quotaUsed?: number | null, quota?: number | null) {
+  const used = Number(quotaUsed ?? 0);
+  const limit = Number(quota ?? 0);
+
+  if (limit <= 0) {
+    return '∞';
+  }
+
+  return `${used} / ${limit}`;
+}
+
+function formatTime(value?: string | null) {
+  if (!value) return '--';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View
+      style={{
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>{title}</Text>
+      <View style={{ marginTop: 12 }}>{children}</View>
+    </View>
+  );
+}
+
+function GridField({ label, value }: { label: string; value: string }) {
+  return (
+    <View
+      style={{
+        width: '48.5%',
+        backgroundColor: colors.muted,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Text style={{ fontSize: 12, color: colors.subtext }}>{label}</Text>
+      <Text style={{ marginTop: 6, fontSize: 15, fontWeight: '600', color: colors.text }}>{value}</Text>
+    </View>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.muted,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Text style={{ fontSize: 12, color: colors.subtext }}>{label}</Text>
+      <Text style={{ marginTop: 6, fontSize: 16, fontWeight: '700', color: colors.text }}>{value}</Text>
+    </View>
+  );
+}
+
+function StatusBadge({ text }: { text: string }) {
+  const normalized = text.toLowerCase();
+  const backgroundColor = normalized === 'active' ? '#dff4ea' : normalized === 'inactive' ? '#ece5da' : '#f7e1d6';
+  const color = normalized === 'active' ? '#17663f' : normalized === 'inactive' ? '#6f665c' : '#a4512b';
+
+  return (
+    <View style={{ backgroundColor, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color }}>{text}</Text>
+    </View>
+  );
+}
+
+function CopyInlineButton({ copied, onPress }: { copied: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        marginLeft: 8,
+        backgroundColor: copied ? '#dff4ea' : '#e7dfcf',
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+      }}
+    >
+      <Text style={{ fontSize: 11, fontWeight: '700', color: copied ? '#17663f' : '#4e463e' }}>{copied ? '已复制' : '复制'}</Text>
+    </Pressable>
+  );
+}
+
+function KeyItem({ item, copied, onCopy }: { item: AdminApiKey; copied: boolean; onCopy: () => void }) {
+  return (
+    <View
+      style={{
+        backgroundColor: colors.muted,
+        borderRadius: 14,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginBottom: 10,
+      }}
+    >
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{item.name || `Key #${item.id}`}</Text>
+            <CopyInlineButton copied={copied} onPress={onCopy} />
+          </View>
+          <Text style={{ marginTop: 4, fontSize: 12, color: colors.subtext }}>{item.group?.name || '未分组'}</Text>
+        </View>
+        <StatusBadge text={item.status || '--'} />
+      </View>
+
+      <Text style={{ marginTop: 10, fontSize: 12, lineHeight: 18, color: colors.text }}>{item.key || '--'}</Text>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 11, color: colors.subtext }}>已用额度</Text>
+          <Text style={{ marginTop: 4, fontSize: 16, fontWeight: '700', color: colors.text }}>{formatQuota(item.quota_used, item.quota)}</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 11, color: colors.subtext }}>最后使用时间</Text>
+          <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{formatTime(item.last_used_at || item.updated_at || item.created_at)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const userId = Number(id);
   const queryClient = useQueryClient();
+
   const [operation, setOperation] = useState<BalanceOperation>('add');
-  const [keySearchText, setKeySearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [amount, setAmount] = useState('10');
+  const [notes, setNotes] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
   const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
-  const keySearch = useDebouncedValue(keySearchText.trim().toLowerCase(), 250);
-  const { control, handleSubmit, reset, formState } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      amount: '10',
-      notes: '',
-    },
-  });
+  const [rangeKey, setRangeKey] = useState<RangeKey>('7d');
+  const range = getDateRange(rangeKey);
 
   const userQuery = useQuery({
     queryKey: ['user', userId],
     queryFn: () => getUser(userId),
-    enabled: Number.isFinite(userId),
-  });
-
-  const usageQuery = useQuery({
-    queryKey: ['user-usage', userId],
-    queryFn: () => getUserUsage(userId),
     enabled: Number.isFinite(userId),
   });
 
@@ -58,187 +260,323 @@ export default function UserDetailScreen() {
     enabled: Number.isFinite(userId),
   });
 
+  const usageStatsQuery = useQuery({
+    queryKey: ['usage-stats', 'user', userId, rangeKey, range.start_date, range.end_date],
+    queryFn: () => getUsageStats({ ...range, user_id: userId }),
+    enabled: Number.isFinite(userId),
+  });
+
+  const usageSnapshotQuery = useQuery({
+    queryKey: ['usage-snapshot', 'user', userId, rangeKey, range.start_date, range.end_date, range.granularity],
+    queryFn: () =>
+      getDashboardSnapshot({
+        ...range,
+        user_id: userId,
+        include_stats: false,
+        include_trend: true,
+        include_model_stats: false,
+        include_group_stats: false,
+        include_users_trend: false,
+      }),
+    enabled: Number.isFinite(userId),
+  });
+;
+;
+
   const balanceMutation = useMutation({
-    mutationFn: (values: FormValues & { operation: BalanceOperation }) =>
+    mutationFn: (payload: { amount: number; notes?: string; operation: BalanceOperation }) =>
       updateUserBalance(userId, {
-        balance: Number(values.amount),
-        operation: values.operation,
-        notes: values.notes,
+        balance: payload.amount,
+        notes: payload.notes,
+        operation: payload.operation,
       }),
     onSuccess: () => {
+      setFormError(null);
+      setAmount('10');
+      setNotes('');
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      reset({ amount: '10', notes: '' });
     },
+    onError: (error) => setFormError(getErrorMessage(error)),
   });
 
   const user = userQuery.data;
-  const usage = usageQuery.data;
   const apiKeys = apiKeysQuery.data?.items ?? [];
-  const filteredApiKeys = useMemo(
-    () =>
-      apiKeys.filter((item) => {
-        const matchesStatus = statusFilter === 'all' ? true : item.status === statusFilter;
-        const matchesSearch = !keySearch
-          ? true
-          : [item.name, item.key, item.group?.name]
-              .filter(Boolean)
-              .join(' ')
-              .toLowerCase()
-              .includes(keySearch);
 
-        return matchesStatus && matchesSearch;
-      }),
-    [apiKeys, keySearch, statusFilter]
-  );
+  const filteredApiKeys = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
 
-  function maskKey(value: string) {
-    if (!value || value.length < 16) {
-      return value;
+    return apiKeys.filter((item) => {
+      const haystack = [item.name, item.key, item.group?.name].filter(Boolean).join(' ').toLowerCase();
+      return keyword ? haystack.includes(keyword) : true;
+    });
+  }, [apiKeys, searchText]);
+  const trendPoints = (usageSnapshotQuery.data?.trend ?? []).map((item) => ({
+    label: rangeKey === '24h' ? item.date.slice(11, 13) : item.date.slice(5, 10),
+    value: item.total_tokens,
+  }));
+
+  function submitBalance() {
+    const numericAmount = Number(amount);
+
+    if (!amount.trim()) {
+      setFormError('请输入金额。');
+      return;
     }
 
-    return `${value.slice(0, 8)}••••••${value.slice(-8)}`;
+    if (!Number.isFinite(numericAmount) || numericAmount < 0) {
+      setFormError('金额格式不正确。');
+      return;
+    }
+
+    balanceMutation.mutate({
+      amount: numericAmount,
+      notes: notes.trim() || undefined,
+      operation,
+    });
   }
 
-  async function copyKey(keyId: number, value: string) {
-    await Clipboard.setStringAsync(value);
-    setCopiedKeyId(keyId);
-    setTimeout(() => setCopiedKeyId((current) => (current === keyId ? null : current)), 1600);
+  async function copyKey(item: AdminApiKey) {
+    await Clipboard.setStringAsync(item.key || '');
+    setCopiedKeyId(item.id);
+    setTimeout(() => {
+      setCopiedKeyId((current) => (current === item.id ? null : current));
+    }, 1500);
   }
 
   return (
-    <ScreenShell
-      title={user?.username || user?.email || '用户详情'}
-      subtitle=""
-      titleAside={<Text className="text-[11px] text-[#a2988a]">用户余额、用量与密钥概览。</Text>}
-      variant="minimal"
-      right={
-        <Pressable className="h-11 w-11 items-center justify-center rounded-full bg-[#2d3134]" onPress={() => router.back()}>
-          <ChevronLeft color="#f6f1e8" size={18} />
-        </Pressable>
-      }
-    >
-      <ListCard title="基本信息" meta={user?.email} badge={user?.status || 'loading'} icon={Wallet}>
-        <DetailRow label="角色" value={user?.role || '--'} />
-        <DetailRow label="余额" value={Number(user?.balance ?? 0).toFixed(2)} />
-        <DetailRow label="并发" value={`${user?.concurrency ?? 0}`} />
-        <DetailRow label="更新时间" value={formatDisplayTime(user?.updated_at)} />
-      </ListCard>
+    <>
+      <Stack.Screen options={{ title: user?.email || '用户详情' }} />
+      <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.page }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          {userQuery.isLoading ? (
+            <Section title="状态">
+              <Text style={{ color: colors.subtext }}>正在加载用户详情...</Text>
+            </Section>
+          ) : null}
 
-      <ListCard title="月度用量" meta="真实数据来自 /users/:id/usage" icon={ArrowLeftRight}>
-        <DetailRow label="Token" value={`${Number(usage?.tokens ?? usage?.total_tokens ?? 0)}`} />
-        <DetailRow label="请求数" value={`${Number(usage?.requests ?? usage?.total_requests ?? 0)}`} />
-        <DetailRow label="成本" value={`$${Number(usage?.cost ?? usage?.total_cost ?? 0).toFixed(4)}`} />
-      </ListCard>
-
-      <ListCard title="API 密钥" meta="直接聚合管理员 /users/:id/api-keys" icon={KeyRound}>
-        <View className="gap-3">
-          <View className="flex-row items-center rounded-[18px] bg-[#f1ece2] px-4 py-3">
-            <Search color="#7d7468" size={16} />
-            <TextInput
-              defaultValue=""
-              onChangeText={setKeySearchText}
-              placeholder="搜索 key 名称或分组"
-              placeholderTextColor="#9b9081"
-              className="ml-3 flex-1 text-sm text-[#16181a]"
-            />
-          </View>
-          <View className="flex-row gap-2">
-            {(['all', 'active', 'inactive'] as const).map((item) => (
-              <Pressable
-                key={item}
-                className={statusFilter === item ? 'flex-1 rounded-[16px] bg-[#1d5f55] px-3 py-3' : 'flex-1 rounded-[16px] bg-[#e7dfcf] px-3 py-3'}
-                onPress={() => setStatusFilter(item)}
-              >
-                <Text className={statusFilter === item ? 'text-center text-sm font-semibold text-white' : 'text-center text-sm font-semibold text-[#4e463e]'}>
-                  {item === 'all' ? '全部' : item === 'active' ? '启用' : '停用'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {filteredApiKeys.map((item) => (
-            <View key={item.id} className="rounded-[18px] bg-[#f1ece2] px-4 py-3">
-              <View className="flex-row items-center justify-between gap-3">
-                <Text className="flex-1 text-sm font-semibold text-[#16181a]">{item.name}</Text>
-                <Text className="text-xs uppercase tracking-[1.2px] text-[#7d7468]">{item.status}</Text>
+          {userQuery.error ? (
+            <Section title="状态">
+              <View style={{ backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>用户信息加载失败</Text>
+                <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(userQuery.error)}</Text>
               </View>
-              <View className="mt-2 flex-row items-center gap-2">
-                <Text className="flex-1 text-xs text-[#7d7468]">{maskKey(item.key)}</Text>
-                <Pressable
-                  className="rounded-full bg-[#e7dfcf] p-2"
-                  onPress={() => copyKey(item.id, item.key)}
+            </Section>
+          ) : null}
+
+          {user ? (
+            <Section title="基础信息">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
+                <View
+                  style={{
+                    width: '48.5%',
+                    justifyContent: 'center',
+                    paddingHorizontal: 4,
+                    paddingVertical: 8,
+                  }}
                 >
-                  <Copy color="#4e463e" size={14} />
-                </Pressable>
+                  <Text style={{ fontSize: 11, color: colors.subtext }}>邮箱</Text>
+                  <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{user.email || '--'}</Text>
+                </View>
+                <GridField label="用户名" value={user.username || '--'} />
+                <GridField label="余额" value={formatMoney(user.balance)} />
+                <View
+                  style={{
+                    width: '48.5%',
+                    justifyContent: 'center',
+                    paddingHorizontal: 4,
+                    paddingVertical: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, color: colors.subtext }}>最后使用时间</Text>
+                  <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{formatTime(user.last_used_at || user.updated_at || user.created_at)}</Text>
+                </View>
               </View>
-              <Text className="mt-2 text-xs text-[#7d7468]">
-                {copiedKeyId === item.id ? '已复制到剪贴板' : `最近使用 ${formatDisplayTime(item.last_used_at)}`}
-              </Text>
-              <Text className="mt-2 text-xs text-[#7d7468]">
-                已用 ${Number(item.quota_used ?? 0).toFixed(2)} / 配额 {item.quota ? `$${Number(item.quota).toFixed(2)}` : '无限制'}
-              </Text>
-              <Text className="mt-1 text-xs text-[#7d7468]">
-                分组 {item.group?.name || '未绑定'} · 5h 用量 {Number(item.usage_5h ?? 0).toFixed(2)}
-              </Text>
+            </Section>
+          ) : null}
+
+          <Section title="总用量">
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {RANGE_OPTIONS.map((item) => {
+                const active = item.key === rangeKey;
+                return (
+                  <Pressable
+                    key={item.key}
+                    onPress={() => setRangeKey(item.key)}
+                    style={{
+                      backgroundColor: active ? colors.primary : colors.muted,
+                      borderRadius: 999,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderWidth: 1,
+                      borderColor: active ? colors.primary : colors.border,
+                    }}
+                  >
+                    <Text style={{ color: active ? '#fff' : colors.text, fontSize: 12, fontWeight: '700' }}>{item.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          ))}
-          {filteredApiKeys.length === 0 ? <Text className="text-sm text-[#7d7468]">当前筛选条件下没有 API 密钥。</Text> : null}
-        </View>
-      </ListCard>
 
-      <ListCard title="余额调整" meta="默认执行增加余额，可继续扩成减余额和设定值。" icon={Wallet}>
-        <View className="gap-3">
-          <Controller
-            control={control}
-            name="amount"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                keyboardType="decimal-pad"
-                placeholder="输入金额"
-                placeholderTextColor="#9b9081"
-                className="rounded-[18px] bg-[#f1ece2] px-4 py-4 text-base text-[#16181a]"
-              />
-            )}
-          />
-          <View className="flex-row gap-2">
-            {(['add', 'subtract', 'set'] as BalanceOperation[]).map((item) => (
-              <Pressable
-                key={item}
-                  className={operation === item ? 'flex-1 rounded-[16px] bg-[#1d5f55] px-3 py-3' : 'flex-1 rounded-[16px] bg-[#e7dfcf] px-3 py-3'}
-                  onPress={() => setOperation(item)}
-                >
-                  <Text className={operation === item ? 'text-center text-sm font-semibold text-white' : 'text-center text-sm font-semibold text-[#4e463e]'}>
-                    {item === 'add' ? '增加' : item === 'subtract' ? '扣减' : '设为'}
-                  </Text>
-                </Pressable>
-              ))}
-          </View>
-          <Controller
-            control={control}
-            name="notes"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                placeholder="备注，可留空"
-                placeholderTextColor="#9b9081"
-                className="rounded-[18px] bg-[#f1ece2] px-4 py-4 text-base text-[#16181a]"
-              />
-            )}
-          />
-          {formState.errors.amount ? <Text className="text-sm text-[#c25d35]">{formState.errors.amount.message}</Text> : null}
-          <Pressable
-            className="rounded-[18px] bg-[#1d5f55] px-4 py-4"
-            onPress={handleSubmit((values) => balanceMutation.mutate({ ...values, operation }))}
-          >
-            <Text className="text-center text-sm font-semibold tracking-[1.2px] text-white">
-              {balanceMutation.isPending ? '提交中...' : operation === 'add' ? '增加余额' : operation === 'subtract' ? '扣减余额' : '设置余额'}
-            </Text>
-          </Pressable>
-        </View>
-      </ListCard>
-    </ScreenShell>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <MetricCard label="请求" value={formatTokenValue(usageStatsQuery.data?.total_requests)} />
+              <MetricCard label="Token" value={formatTokenValue(usageStatsQuery.data?.total_tokens)} />
+              <MetricCard label="成本" value={formatUsageCost(usageStatsQuery.data)} />
+            </View>
+
+            {usageStatsQuery.data ? (
+              <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>
+                输入 {formatTokenValue(usageStatsQuery.data.total_input_tokens)} · 输出 {formatTokenValue(usageStatsQuery.data.total_output_tokens)}
+              </Text>
+            ) : null}
+
+            {usageStatsQuery.isLoading ? <Text style={{ marginTop: 12, color: colors.subtext }}>正在加载用量统计...</Text> : null}
+
+            {usageStatsQuery.error ? (
+              <View style={{ marginTop: 12, backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>用量统计加载失败</Text>
+                <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(usageStatsQuery.error)}</Text>
+              </View>
+            ) : null}
+
+            {!usageSnapshotQuery.isLoading && trendPoints.length > 1 ? (
+              <View style={{ marginTop: 14 }}>
+                <LineTrendChart
+                  title="用量趋势"
+                  subtitle={`${range.start_date} 到 ${range.end_date}`}
+                  points={trendPoints}
+                  color="#1d5f55"
+                  formatValue={(value) => formatTokenValue(value)}
+                  compact
+                />
+              </View>
+            ) : null}
+
+            {usageSnapshotQuery.isLoading ? <Text style={{ marginTop: 12, color: colors.subtext }}>正在加载趋势图...</Text> : null}
+
+            {usageSnapshotQuery.error ? (
+              <View style={{ marginTop: 12, backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>趋势加载失败</Text>
+                <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(usageSnapshotQuery.error)}</Text>
+              </View>
+            ) : null}
+          </Section>
+
+          <Section title="API Keys">
+            <TextInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="搜索名称 / Key / 分组"
+              placeholderTextColor="#9a9082"
+              style={{
+                backgroundColor: colors.muted,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+                color: colors.text,
+                marginBottom: 10,
+              }}
+            />
+
+            {apiKeysQuery.isLoading ? <Text style={{ color: colors.subtext }}>正在加载 API Keys...</Text> : null}
+
+            {apiKeysQuery.error ? (
+              <View style={{ backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>API Keys 加载失败</Text>
+                <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(apiKeysQuery.error)}</Text>
+              </View>
+            ) : null}
+
+            {!apiKeysQuery.isLoading && !apiKeysQuery.error ? (
+              filteredApiKeys.length > 0 ? (
+                <View>
+                  {filteredApiKeys.map((item) => (
+                    <KeyItem key={item.id} item={item} copied={copiedKeyId === item.id} onCopy={() => copyKey(item)} />
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ color: colors.subtext }}>当前筛选条件下没有 Key。</Text>
+              )
+            ) : null}
+          </Section>
+
+          <Section title="余额操作">
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {([
+                { label: '充值', value: 'add' },
+                { label: '扣减', value: 'subtract' },
+                { label: '设为', value: 'set' },
+              ] as const).map((item) => {
+                const active = operation === item.value;
+                return (
+                  <Pressable
+                    key={item.value}
+                    onPress={() => setOperation(item.value)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: active ? colors.primary : colors.muted,
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: active ? colors.primary : colors.border,
+                    }}
+                  >
+                    <Text style={{ color: active ? '#fff' : colors.text, fontWeight: '700' }}>{item.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <TextInput
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="输入金额，例如 10"
+              placeholderTextColor="#9a9082"
+              keyboardType="decimal-pad"
+              style={{
+                backgroundColor: colors.muted,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+                color: colors.text,
+                marginBottom: 10,
+              }}
+            />
+
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="备注（可选）"
+              placeholderTextColor="#9a9082"
+              style={{
+                backgroundColor: colors.muted,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+                color: colors.text,
+                marginBottom: 10,
+              }}
+            />
+
+            {formError ? (
+              <View style={{ backgroundColor: colors.errorBg, borderRadius: 12, padding: 12, marginBottom: 10 }}>
+                <Text style={{ color: colors.errorText }}>{formError}</Text>
+              </View>
+            ) : null}
+
+            <Pressable onPress={submitBalance} style={{ backgroundColor: colors.dark, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>{balanceMutation.isPending ? '提交中...' : '确认提交'}</Text>
+            </Pressable>
+          </Section>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }

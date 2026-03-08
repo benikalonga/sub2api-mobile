@@ -1,197 +1,299 @@
+import { router } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
 import { z } from 'zod';
 
-import { ListCard } from '@/src/components/list-card';
-import { ScreenShell } from '@/src/components/screen-shell';
-import { isLocalProxyBaseUrl } from '@/src/lib/admin-fetch';
+import { getAdminSettings, getDashboardStats } from '@/src/services/admin';
 import { queryClient } from '@/src/lib/query-client';
-import {
-  adminConfigState,
-  logoutAdminAccount,
-  removeAdminAccount,
-  saveAdminConfig,
-  setAdminAccountEnabled,
-  switchAdminAccount,
-  type AdminAccountProfile,
-} from '@/src/store/admin-config';
+import { adminConfigState, removeAdminAccount, saveAdminConfig, switchAdminAccount, type AdminAccountProfile } from '@/src/store/admin-config';
 
 const { useSnapshot } = require('valtio/react');
 
 const schema = z
   .object({
-    baseUrl: z.string().min(1, '请输入 Host'),
+    baseUrl: z.string().min(1, '请输入服务器地址'),
     adminApiKey: z.string(),
   })
-  .superRefine((values, ctx) => {
-    if (!isLocalProxyBaseUrl(values.baseUrl.trim()) && !values.adminApiKey.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['adminApiKey'],
-        message: '请输入 Admin Token',
-      });
-    }
+  .refine((values) => values.adminApiKey.trim().length > 0, {
+    path: ['adminApiKey'],
+    message: '请输入 Admin Key',
   });
 
 type FormValues = z.infer<typeof schema>;
+type ConnectionState = 'idle' | 'checking' | 'success' | 'error';
+
+const colors = {
+  page: '#f4efe4',
+  card: '#fbf8f2',
+  mutedCard: '#f1ece2',
+  primary: '#1d5f55',
+  text: '#16181a',
+  subtext: '#6f665c',
+  border: '#e7dfcf',
+  dangerBg: '#fbf1eb',
+  danger: '#c25d35',
+  successBg: '#e6f4ee',
+  success: '#1d5f55',
+};
+
+function getConnectionErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    switch (error.message) {
+      case 'BASE_URL_REQUIRED':
+        return '请先填写服务器地址。';
+      case 'ADMIN_API_KEY_REQUIRED':
+        return '请先填写 Admin Key。';
+      case 'INVALID_SERVER_RESPONSE':
+        return '当前地址返回的数据不正确，请确认它是可用的管理接口。';
+      default:
+        return error.message;
+    }
+  }
+
+  return '连接失败，请检查服务器地址、Admin Key 和网络连通性。';
+}
+
+function ServerCard({
+  account,
+  active,
+  onSelect,
+  onDelete,
+}: {
+  account: AdminAccountProfile;
+  active: boolean;
+  onSelect: () => Promise<void>;
+  onDelete: () => Promise<void>;
+}) {
+  return (
+    <Pressable
+      onPress={onSelect}
+      style={{
+        backgroundColor: active ? '#e6f4ee' : colors.card,
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: active ? colors.success : colors.border,
+      }}
+    >
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{account.label}</Text>
+          <Text style={{ marginTop: 6, fontSize: 13, lineHeight: 20, color: colors.subtext }}>{account.baseUrl}</Text>
+          <Text style={{ marginTop: 8, fontSize: 11, color: '#8a8072' }}>更新时间 {new Date(account.updatedAt).toLocaleString()}</Text>
+        </View>
+        {active ? (
+          <View style={{ backgroundColor: colors.success, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>当前使用</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+        <Pressable onPress={onSelect} style={{ flex: 1, backgroundColor: active ? '#d7eee4' : colors.primary, borderRadius: 14, paddingVertical: 11, alignItems: 'center' }}>
+          <Text style={{ color: active ? colors.success : '#fff', fontSize: 13, fontWeight: '700' }}>{active ? '已选中' : '切换到此服务器'}</Text>
+        </Pressable>
+        <Pressable onPress={onDelete} style={{ backgroundColor: colors.border, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center' }}>
+          <Text style={{ color: '#7a3d31', fontSize: 13, fontWeight: '700' }}>删除</Text>
+        </Pressable>
+      </View>
+    </Pressable>
+  );
+}
 
 export default function SettingsScreen() {
   const config = useSnapshot(adminConfigState);
+  const [showForm, setShowForm] = useState(config.accounts.length === 0);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
+  const [connectionMessage, setConnectionMessage] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { control, handleSubmit, formState, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    values: {
-      baseUrl: config.baseUrl,
-      adminApiKey: config.adminApiKey,
+    defaultValues: {
+      baseUrl: '',
+      adminApiKey: '',
     },
   });
 
-  async function handleSwitch(account: AdminAccountProfile) {
+  async function verifyAndEnter(successMessage: string) {
+    setConnectionState('checking');
+    setConnectionMessage('正在检测当前服务是否可用...');
+
+    try {
+      queryClient.clear();
+      await queryClient.fetchQuery({ queryKey: ['admin-settings'], queryFn: getAdminSettings });
+      await queryClient.prefetchQuery({ queryKey: ['monitor-stats'], queryFn: getDashboardStats });
+      setConnectionState('success');
+      setConnectionMessage(successMessage);
+      router.replace('/monitor');
+    } catch (error) {
+      setConnectionState('error');
+      setConnectionMessage(getConnectionErrorMessage(error));
+    }
+  }
+
+  async function handleAdd(values: FormValues) {
+    await saveAdminConfig(values);
+    reset({ baseUrl: '', adminApiKey: '' });
+    setShowForm(false);
+    await verifyAndEnter('服务器已添加并切换成功。');
+  }
+
+  async function handleSelect(account: AdminAccountProfile) {
     await switchAdminAccount(account.id);
-    queryClient.clear();
-    reset({ baseUrl: account.baseUrl, adminApiKey: account.adminApiKey });
+    await verifyAndEnter(`已切换到 ${account.label}。`);
   }
 
   async function handleDelete(account: AdminAccountProfile) {
     await removeAdminAccount(account.id);
     queryClient.clear();
-    reset({ baseUrl: adminConfigState.baseUrl, adminApiKey: adminConfigState.adminApiKey });
   }
 
-  async function handleLogout() {
-    await logoutAdminAccount();
-    queryClient.clear();
-    reset({ baseUrl: '', adminApiKey: '' });
-  }
+  async function handleRefresh() {
+    if (!config.baseUrl.trim()) {
+      return;
+    }
 
-  async function handleToggleEnabled(account: AdminAccountProfile) {
-    await setAdminAccountEnabled(account.id, account.enabled === false);
-    queryClient.clear();
-    reset({ baseUrl: adminConfigState.baseUrl, adminApiKey: adminConfigState.adminApiKey });
+    setIsRefreshing(true);
+    setConnectionState('idle');
+    setConnectionMessage('');
+
+    try {
+      await Promise.all([
+        queryClient.fetchQuery({ queryKey: ['admin-settings'], queryFn: getAdminSettings }),
+        queryClient.prefetchQuery({ queryKey: ['monitor-stats'], queryFn: getDashboardStats }),
+      ]);
+    } catch (error) {
+      setConnectionState('error');
+      setConnectionMessage(getConnectionErrorMessage(error));
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   return (
-    <ScreenShell
-      title="服务器"
-      subtitle=""
-      titleAside={<Text className="text-[11px] text-[#a2988a]">管理 Sub2API 连接。</Text>}
-      variant="minimal"
-    >
-      <ListCard title="当前连接" meta={config.baseUrl || '未连接'}>
-        <View className="gap-3">
-          <Text className="text-sm text-[#6f665c]">
-            {config.baseUrl || '当前没有激活服务器，可在下方直接新增或切换。'}
-          </Text>
-          <View className="flex-row gap-3">
-            <Pressable className="flex-1 rounded-[18px] bg-[#1d5f55] px-4 py-3" onPress={handleSubmit(async (values) => {
-              await saveAdminConfig(values);
-              queryClient.clear();
-            })}>
-              <Text className="text-center text-sm font-semibold text-white">保存并连接</Text>
-            </Pressable>
-            <Pressable className="flex-1 rounded-[18px] bg-[#e7dfcf] px-4 py-3" onPress={handleLogout}>
-              <Text className="text-center text-sm font-semibold text-[#4e463e]">退出当前</Text>
-            </Pressable>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.page }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 110, gap: 14 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void handleRefresh()} tintColor="#1d5f55" />}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>服务器</Text>
+            <Text style={{ marginTop: 6, fontSize: 13, color: '#8a8072' }}>选择当前管理的服务器，或添加新的服务器。</Text>
           </View>
+          <Pressable
+            onPress={() => {
+              setShowForm((value) => !value);
+              setConnectionState('idle');
+              setConnectionMessage('');
+            }}
+            style={{ backgroundColor: colors.primary, borderRadius: 999, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontSize: 24, lineHeight: 24 }}>+</Text>
+          </Pressable>
         </View>
-      </ListCard>
 
-      <ListCard title="连接配置" meta="Host 与 Admin Token 合并配置">
-        <View className="gap-3">
-          <View>
-            <Text className="mb-2 text-[11px] text-[#7d7468]">Host</Text>
-            <Controller
-              control={control}
-              name="baseUrl"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder="http://localhost:8787"
-                  placeholderTextColor="#9b9081"
-                  autoCapitalize="none"
-                  className="rounded-[18px] bg-[#f1ece2] px-4 py-4 text-base text-[#16181a]"
-                />
-              )}
-            />
+        {showForm ? (
+          <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 16, gap: 14 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>添加服务器</Text>
+
+            <View>
+              <Text style={{ marginBottom: 8, fontSize: 12, color: colors.subtext }}>服务器地址</Text>
+              <Controller
+                control={control}
+                name="baseUrl"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="例如：https://api.example.com"
+                    placeholderTextColor="#9b9081"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={{ backgroundColor: colors.mutedCard, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: colors.text }}
+                  />
+                )}
+              />
+            </View>
+
+            <View>
+              <Text style={{ marginBottom: 8, fontSize: 12, color: colors.subtext }}>Admin Key</Text>
+              <Controller
+                control={control}
+                name="adminApiKey"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="admin-xxxxxxxx"
+                    placeholderTextColor="#9b9081"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={{ backgroundColor: colors.mutedCard, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: colors.text }}
+                  />
+                )}
+              />
+            </View>
+
+            {formState.errors.baseUrl || formState.errors.adminApiKey ? (
+              <View style={{ borderRadius: 14, backgroundColor: colors.dangerBg, paddingHorizontal: 14, paddingVertical: 12 }}>
+                <Text style={{ color: colors.danger, fontSize: 14 }}>{formState.errors.baseUrl?.message || formState.errors.adminApiKey?.message}</Text>
+              </View>
+            ) : null}
+
+            {connectionMessage ? (
+              <View style={{ borderRadius: 14, backgroundColor: connectionState === 'success' ? colors.successBg : colors.dangerBg, paddingHorizontal: 14, paddingVertical: 12 }}>
+                <Text style={{ color: connectionState === 'success' ? colors.success : colors.danger, fontSize: 14 }}>{connectionMessage}</Text>
+              </View>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable
+                onPress={handleSubmit(handleAdd)}
+                disabled={connectionState === 'checking'}
+                style={{ flex: 1, backgroundColor: connectionState === 'checking' ? '#7ca89f' : colors.primary, borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{connectionState === 'checking' ? '检测中...' : '保存并使用'}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setShowForm(false);
+                  setConnectionState('idle');
+                  setConnectionMessage('');
+                  reset({ baseUrl: '', adminApiKey: '' });
+                }}
+                style={{ flex: 1, backgroundColor: colors.border, borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#4e463e', fontSize: 14, fontWeight: '700' }}>取消</Text>
+              </Pressable>
+            </View>
           </View>
+        ) : null}
 
-          <View>
-            <Text className="mb-2 text-[11px] text-[#7d7468]">Admin Token</Text>
-            <Controller
-              control={control}
-              name="adminApiKey"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder="admin-xxxxxxxx"
-                  placeholderTextColor="#9b9081"
-                  autoCapitalize="none"
-                  className="rounded-[18px] bg-[#f1ece2] px-4 py-4 text-base text-[#16181a]"
-                />
-              )}
+        <View style={{ gap: 12 }}>
+          {config.accounts.map((account: AdminAccountProfile) => (
+            <ServerCard
+              key={account.id}
+              account={account}
+              active={account.id === config.activeAccountId}
+              onSelect={() => handleSelect(account)}
+              onDelete={() => handleDelete(account)}
             />
-          </View>
+          ))}
 
-          <Text className="text-[11px] text-[#8a8072]">使用本地代理时可留空 token；直连上游时必须填写。</Text>
-
-          {(formState.errors.baseUrl || formState.errors.adminApiKey) ? (
-            <View className="rounded-[16px] bg-[#fbf1eb] px-4 py-3">
-              <Text className="text-sm text-[#c25d35]">{formState.errors.baseUrl?.message || formState.errors.adminApiKey?.message}</Text>
+          {config.accounts.length === 0 ? (
+            <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 18 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>还没有服务器</Text>
+              <Text style={{ marginTop: 8, fontSize: 13, lineHeight: 21, color: colors.subtext }}>点击右上角 + 添加服务器，保存成功后会自动切换并进入概览。</Text>
             </View>
           ) : null}
         </View>
-      </ListCard>
-
-      <ListCard title="已保存服务器" meta={`共 ${config.accounts.length} 个`}>
-        <View className="gap-3">
-          {config.accounts.map((account: AdminAccountProfile) => {
-            const active = account.id === config.activeAccountId;
-            const enabled = account.enabled !== false;
-
-            return (
-              <View key={account.id} className="rounded-[18px] bg-[#f1ece2] px-4 py-3">
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-[#16181a]">{account.label}</Text>
-                    <Text className="mt-1 text-xs text-[#7d7468]">{account.baseUrl}</Text>
-                  </View>
-                  {active ? (
-                    <View className="rounded-full bg-[#1d5f55] px-3 py-1">
-                      <Text className="text-[10px] font-semibold uppercase tracking-[1px] text-white">当前</Text>
-                    </View>
-                  ) : !enabled ? (
-                    <View className="rounded-full bg-[#cfc5b7] px-3 py-1">
-                      <Text className="text-[10px] font-semibold uppercase tracking-[1px] text-[#6f665c]">已禁用</Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View className="mt-3 flex-row gap-3">
-                  <Pressable
-                    className={active ? 'flex-1 rounded-[16px] bg-[#d7eee4] px-3 py-2.5' : !enabled ? 'flex-1 rounded-[16px] bg-[#d8d1c4] px-3 py-2.5' : 'flex-1 rounded-[16px] bg-[#1d5f55] px-3 py-2.5'}
-                    onPress={() => handleSwitch(account)}
-                    disabled={!enabled}
-                  >
-                    <Text className={active ? 'text-center text-xs font-semibold text-[#1d5f55]' : !enabled ? 'text-center text-xs font-semibold text-[#7d7468]' : 'text-center text-xs font-semibold text-white'}>
-                      {active ? '使用中' : '启用连接'}
-                    </Text>
-                  </Pressable>
-                  <Pressable className="rounded-[16px] bg-[#e7dfcf] px-4 py-2.5" onPress={() => handleToggleEnabled(account)}>
-                    <Text className="text-center text-xs font-semibold text-[#4e463e]">{enabled ? '禁用' : '启用'}</Text>
-                  </Pressable>
-                  <Pressable className="rounded-[16px] bg-[#e7dfcf] px-4 py-2.5" onPress={() => handleDelete(account)}>
-                    <Text className="text-center text-xs font-semibold text-[#7a3d31]">删除</Text>
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-
-          {config.accounts.length === 0 ? <Text className="text-sm text-[#7d7468]">还没有保存的服务器。</Text> : null}
-        </View>
-      </ListCard>
-    </ScreenShell>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

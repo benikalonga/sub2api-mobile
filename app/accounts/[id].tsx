@@ -66,11 +66,18 @@ export default function AccountDetailScreen() {
     label: item.date.slice(5),
     value: item.total_tokens,
   }));
+  const isRefreshing = accountQuery.isRefetching || todayStatsQuery.isRefetching || trendQuery.isRefetching;
+
+  function handleRefresh() {
+    void Promise.all([accountQuery.refetch(), todayStatsQuery.refetch(), trendQuery.refetch()]);
+  }
 
   return (
     <ScreenShell
       title={account?.name || '账号详情'}
       subtitle="聚焦账号 token 用量、状态和几个最常用操作。"
+      refreshing={isRefreshing}
+      onRefresh={handleRefresh}
       right={
         <Pressable className="h-11 w-11 items-center justify-center rounded-full bg-[#2d3134]" onPress={() => router.back()}>
           <ChevronLeft color="#f6f1e8" size={18} />

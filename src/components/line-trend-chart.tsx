@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
@@ -28,6 +29,10 @@ export function LineTrendChart({
   const maxValue = Math.max(...points.map((point) => point.value), 1);
   const minValue = Math.min(...points.map((point) => point.value), 0);
   const range = Math.max(maxValue - minValue, 1);
+  const gradientId = useMemo(
+    () => `trendFill-${title.replace(/[^a-zA-Z0-9_-]/g, '')}-${compact ? 'compact' : 'full'}`,
+    [compact, title]
+  );
 
   const line = points
     .map((point, index) => {
@@ -53,18 +58,18 @@ export function LineTrendChart({
       <View className={`overflow-hidden rounded-[14px] bg-[#f4efe4] p-3 ${compact ? 'mt-3' : 'mt-4'}`}>
         <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
           <Defs>
-            <LinearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
+            <LinearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
               <Stop offset="0%" stopColor={color} stopOpacity="0.28" />
               <Stop offset="100%" stopColor={color} stopOpacity="0.02" />
             </LinearGradient>
           </Defs>
-          <Path d={area} fill="url(#trendFill)" />
+          <Path d={area} fill={`url(#${gradientId})`} />
           <Path d={line} fill="none" stroke={color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
         </Svg>
 
         <View className="mt-2 flex-row justify-between">
-          {tickPoints.map((point) => (
-            <Text key={point.label} className={`text-[#7d7468] ${compact ? 'text-[10px]' : 'text-xs'}`}>
+          {tickPoints.map((point, index) => (
+            <Text key={`${point.label}-${index}`} className={`text-[#7d7468] ${compact ? 'text-[10px]' : 'text-xs'}`}>
               {point.label}
             </Text>
           ))}

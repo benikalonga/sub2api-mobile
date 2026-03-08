@@ -12,16 +12,20 @@ import { adminConfigState, hydrateAdminConfig } from '@/src/store/admin-config';
 
 const { useSnapshot } = require('valtio/react');
 
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+};
+
 export default function RootLayout() {
+  const config = useSnapshot(adminConfigState);
+
   useEffect(() => {
     hydrateAdminConfig()
       .then(() => markPerformance('config_hydrated'))
       .catch(() => undefined);
   }, []);
 
-  const config = useSnapshot(adminConfigState);
   const isReady = config.hydrated;
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
@@ -30,10 +34,22 @@ export default function RootLayout() {
             <ActivityIndicator color="#1d5f55" />
           </View>
         ) : (
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="login" />
-            <Stack.Screen name="users/[id]" options={{ animation: 'slide_from_right', presentation: 'card' }} />
+            <Stack.Screen
+              name="users/[id]"
+              options={{
+                animation: 'slide_from_right',
+                presentation: 'card',
+                headerShown: true,
+                title: '用户详情',
+                headerBackTitle: '返回',
+                headerTintColor: '#16181a',
+                headerStyle: { backgroundColor: '#f4efe4' },
+                headerShadowVisible: false,
+              }}
+            />
             <Stack.Screen name="accounts/[id]" options={{ presentation: 'card' }} />
           </Stack>
         )}

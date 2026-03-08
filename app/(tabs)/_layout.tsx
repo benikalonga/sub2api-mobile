@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { ChartNoAxesCombined, Settings2, Users } from 'lucide-react-native';
 
 import { adminConfigState } from '@/src/store/admin-config';
@@ -8,6 +8,10 @@ const { useSnapshot } = require('valtio/react');
 export default function TabsLayout() {
   const config = useSnapshot(adminConfigState);
   const hasAccount = Boolean(config.baseUrl.trim());
+
+  if (!hasAccount) {
+    return <Redirect href="/login" />;
+  }
 
   return (
     <Tabs
@@ -53,7 +57,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen name="groups" options={{ href: null }} />
-      <Tabs.Screen name="keys" options={{ href: null }} />
       <Tabs.Screen name="accounts" options={{ href: null }} />
     </Tabs>
   );

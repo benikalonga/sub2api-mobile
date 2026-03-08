@@ -1,14 +1,6 @@
 import { adminConfigState } from '@/src/store/admin-config';
 import type { ApiEnvelope } from '@/src/types/admin';
 
-function isProxyBaseUrl(baseUrl: string) {
-  return /localhost:8787$/.test(baseUrl) || /127\.0\.0\.1:8787$/.test(baseUrl);
-}
-
-export function isLocalProxyBaseUrl(baseUrl: string) {
-  return isProxyBaseUrl(baseUrl);
-}
-
 export async function adminFetch<T>(
   path: string,
   init: RequestInit = {},
@@ -21,7 +13,7 @@ export async function adminFetch<T>(
     throw new Error('BASE_URL_REQUIRED');
   }
 
-  if (!adminApiKey && !isProxyBaseUrl(baseUrl)) {
+  if (!adminApiKey) {
     throw new Error('ADMIN_API_KEY_REQUIRED');
   }
 

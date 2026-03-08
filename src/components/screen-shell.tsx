@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 
 type ScreenShellProps = PropsWithChildren<{
   title: string;
@@ -12,6 +12,8 @@ type ScreenShellProps = PropsWithChildren<{
   bottomInsetClassName?: string;
   horizontalInsetClassName?: string;
   contentGapClassName?: string;
+  refreshing?: boolean;
+  onRefresh?: () => void | Promise<void>;
 }>;
 
 function ScreenHeader({
@@ -66,6 +68,8 @@ export function ScreenShell({
   bottomInsetClassName = 'pb-24',
   horizontalInsetClassName = 'px-5',
   contentGapClassName = 'mt-4 gap-4',
+  refreshing = false,
+  onRefresh,
 }: ScreenShellProps) {
   if (!scroll) {
     return (
@@ -80,9 +84,15 @@ export function ScreenShell({
 
   return (
     <SafeAreaView className="flex-1 bg-[#f4efe4]">
-      <ScrollView className="flex-1" contentContainerClassName={`${horizontalInsetClassName} ${bottomInsetClassName}`}>
-        <ScreenHeader title={title} subtitle={subtitle} titleAside={titleAside} right={right} variant={variant} />
-        <View className={contentGapClassName}>{children}</View>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d5f55" /> : undefined}
+      >
+        <View className={`${horizontalInsetClassName} ${bottomInsetClassName}`}>
+          <ScreenHeader title={title} subtitle={subtitle} titleAside={titleAside} right={right} variant={variant} />
+          <View className={contentGapClassName}>{children}</View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
