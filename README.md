@@ -72,6 +72,14 @@ npm run eas:update:production -- "your message"
 
 Additional release notes: [docs/EXPO_RELEASE.md](docs/EXPO_RELEASE.md)
 
+GitHub Actions Android build (downloadable):
+
+- Workflow: `.github/workflows/eas-build.yml`
+- Trigger: **Actions → EAS Build → Run workflow**
+- Inputs: `profile=preview`, `platform=android`
+- Requirement: repository secret `EXPO_TOKEN`
+- Download: after completion, open the run **Summary** and use the `ANDROID download` link.
+
 ## Project Structure
 
 ```txt
