@@ -6,6 +6,7 @@ const BASE_URL_KEY = 'sub2api_base_url';
 const ADMIN_KEY_KEY = 'sub2api_admin_api_key';
 const ACCOUNTS_KEY = 'sub2api_accounts';
 const ACTIVE_ACCOUNT_ID_KEY = 'sub2api_active_account_id';
+const IS_WEB = Platform.OS === 'web';
 
 export type AdminAccountProfile = {
   id: string;
@@ -43,8 +44,46 @@ function sortAccounts(accounts: AdminAccountProfile[]) {
 function normalizeAccount(account: AdminAccountProfile): AdminAccountProfile {
   return {
     ...account,
+    adminApiKey: account.adminApiKey ?? '',
     enabled: account.enabled ?? true,
   };
+}
+
+function sanitizeAccountsForWeb(accounts: AdminAccountProfile[]) {
+  if (!IS_WEB) {
+    return accounts;
+  }
+
+  return accounts.map((account) => ({
+    ...account,
+    adminApiKey: '',
+  }));
+}
+
+function persistAdminApiKey(value: string) {
+  if (IS_WEB) {
+    return deleteItem(ADMIN_KEY_KEY);
+  }
+
+  return setItem(ADMIN_KEY_KEY, value);
+}
+
+function persistAccounts(accounts: AdminAccountProfile[]) {
+  return setItem(ACCOUNTS_KEY, JSON.stringify(sanitizeAccountsForWeb(accounts)));
+}
+
+export function hasAuthenticatedAdminSession(config: { baseUrl: string; adminApiKey: string }) {
+  const hasBaseUrl = Boolean(config.baseUrl.trim());
+
+  if (!hasBaseUrl) {
+    return false;
+  }
+
+  if (!IS_WEB) {
+    return true;
+  }
+
+  return Boolean(config.adminApiKey.trim());
 }
 
 function getNextActiveAccount(accounts: AdminAccountProfile[], activeAccountId?: string) {
@@ -139,7 +178,7 @@ export async function hydrateAdminConfig() {
     if (rawAccounts) {
       try {
         const parsed = JSON.parse(rawAccounts) as AdminAccountProfile[];
-        accounts = Array.isArray(parsed) ? parsed.map((account) => normalizeAccount(account)) : [];
+        accounts = Array.isArray(parsed) ? sanitizeAccountsForWeb(parsed.map((account) => normalizeAccount(account))) : [];
       } catch {
         accounts = [];
       }
@@ -148,7 +187,7 @@ export async function hydrateAdminConfig() {
     if (accounts.length === 0 && baseUrl) {
       const legacyConfig = normalizeConfig({
         baseUrl,
-        adminApiKey: adminApiKey ?? defaults.adminApiKey,
+        adminApiKey: IS_WEB ? defaults.adminApiKey : adminApiKey ?? defaults.adminApiKey,
       });
 
       accounts = [
@@ -172,10 +211,10 @@ export async function hydrateAdminConfig() {
     adminConfigState.adminApiKey = activeAccount?.adminApiKey ?? defaults.adminApiKey;
 
     await Promise.all([
-      setItem(ACCOUNTS_KEY, JSON.stringify(sortedAccounts)),
+      persistAccounts(sortedAccounts),
       nextActiveAccountId ? setItem(ACTIVE_ACCOUNT_ID_KEY, nextActiveAccountId) : deleteItem(ACTIVE_ACCOUNT_ID_KEY),
       setItem(BASE_URL_KEY, activeAccount?.baseUrl ?? defaults.baseUrl),
-      setItem(ADMIN_KEY_KEY, activeAccount?.adminApiKey ?? defaults.adminApiKey),
+      persistAdminApiKey(activeAccount?.adminApiKey ?? defaults.adminApiKey),
     ]);
   } finally {
     adminConfigState.hydrated = true;
@@ -211,8 +250,8 @@ export async function saveAdminConfig(input: { baseUrl: string; adminApiKey: str
 
     await Promise.all([
       setItem(BASE_URL_KEY, normalized.baseUrl),
-      setItem(ADMIN_KEY_KEY, normalized.adminApiKey),
-      setItem(ACCOUNTS_KEY, JSON.stringify(nextAccounts)),
+      persistAdminApiKey(normalized.adminApiKey),
+      persistAccounts(nextAccounts),
       setItem(ACTIVE_ACCOUNT_ID_KEY, nextAccount.id),
     ]);
 
@@ -247,8 +286,8 @@ export async function switchAdminAccount(accountId: string) {
 
   await Promise.all([
     setItem(BASE_URL_KEY, nextAccount.baseUrl),
-    setItem(ADMIN_KEY_KEY, nextAccount.adminApiKey),
-    setItem(ACCOUNTS_KEY, JSON.stringify(nextAccounts)),
+    persistAdminApiKey(nextAccount.adminApiKey),
+    persistAccounts(nextAccounts),
     setItem(ACTIVE_ACCOUNT_ID_KEY, nextAccount.id),
   ]);
 
@@ -263,10 +302,10 @@ export async function removeAdminAccount(accountId: string) {
   const nextActiveAccount = getNextActiveAccount(nextAccounts, adminConfigState.activeAccountId === accountId ? '' : adminConfigState.activeAccountId);
 
   await Promise.all([
-    setItem(ACCOUNTS_KEY, JSON.stringify(nextAccounts)),
+    persistAccounts(nextAccounts),
     nextActiveAccount ? setItem(ACTIVE_ACCOUNT_ID_KEY, nextActiveAccount.id) : deleteItem(ACTIVE_ACCOUNT_ID_KEY),
     setItem(BASE_URL_KEY, nextActiveAccount?.baseUrl ?? ''),
-    setItem(ADMIN_KEY_KEY, nextActiveAccount?.adminApiKey ?? ''),
+    persistAdminApiKey(nextActiveAccount?.adminApiKey ?? ''),
   ]);
 
   adminConfigState.accounts = nextAccounts;
@@ -276,7 +315,7 @@ export async function removeAdminAccount(accountId: string) {
 }
 
 export async function logoutAdminAccount() {
-  await Promise.all([setItem(BASE_URL_KEY, ''), setItem(ADMIN_KEY_KEY, ''), deleteItem(ACTIVE_ACCOUNT_ID_KEY)]);
+  await Promise.all([setItem(BASE_URL_KEY, ''), persistAdminApiKey(''), deleteItem(ACTIVE_ACCOUNT_ID_KEY)]);
 
   adminConfigState.activeAccountId = '';
   adminConfigState.baseUrl = '';
@@ -292,10 +331,10 @@ export async function setAdminAccountEnabled(accountId: string, enabled: boolean
   const nextActiveAccount = getNextActiveAccount(nextAccounts, enabled ? accountId : adminConfigState.activeAccountId);
 
   await Promise.all([
-    setItem(ACCOUNTS_KEY, JSON.stringify(nextAccounts)),
+    persistAccounts(nextAccounts),
     nextActiveAccount ? setItem(ACTIVE_ACCOUNT_ID_KEY, nextActiveAccount.id) : deleteItem(ACTIVE_ACCOUNT_ID_KEY),
     setItem(BASE_URL_KEY, nextActiveAccount?.baseUrl ?? ''),
-    setItem(ADMIN_KEY_KEY, nextActiveAccount?.adminApiKey ?? ''),
+    persistAdminApiKey(nextActiveAccount?.adminApiKey ?? ''),
   ]);
 
   adminConfigState.accounts = nextAccounts;

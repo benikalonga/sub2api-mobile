@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 import { getAdminSettings, getDashboardStats } from '@/src/services/admin';
 import { queryClient } from '@/src/lib/query-client';
-import { adminConfigState, saveAdminConfig } from '@/src/store/admin-config';
+import { adminConfigState, hasAuthenticatedAdminSession, saveAdminConfig } from '@/src/store/admin-config';
 
 const { useSnapshot } = require('valtio/react');
 
@@ -56,7 +56,7 @@ function getConnectionErrorMessage(error: unknown) {
 
 export default function LoginScreen() {
   const config = useSnapshot(adminConfigState);
-  const hasAccount = Boolean(config.baseUrl.trim());
+  const hasAccount = hasAuthenticatedAdminSession(config);
   const { control, handleSubmit, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {

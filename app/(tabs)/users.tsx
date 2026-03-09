@@ -1,14 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDebouncedValue } from '@/src/hooks/use-debounced-value';
+import { formatCompactNumber, formatTokenValue } from '@/src/lib/formatters';
 import { queryClient } from '@/src/lib/query-client';
-import { getUser, listUserApiKeys, listUsers } from '@/src/services/admin';
-import { adminConfigState } from '@/src/store/admin-config';
-import type { AdminUser } from '@/src/types/admin';
+import { getUser, getUsageStats, listUserApiKeys, listUsers } from '@/src/services/admin';
+import { adminConfigState, hasAuthenticatedAdminSession } from '@/src/store/admin-config';
+import type { AdminUser, UsageStats } from '@/src/types/admin';
 
 const { useSnapshot } = require('valtio/react');
 
@@ -26,8 +27,30 @@ const colors = {
 };
 
 type SortOrder = 'desc' | 'asc';
+type RangeKey = '24h' | '7d' | '30d';
 
-function formatBalance(value?: number) {
+function getDateRange(rangeKey: RangeKey) {
+  const end = new Date();
+  const start = new Date();
+
+  if (rangeKey === '24h') {
+    start.setHours(end.getHours() - 23, 0, 0, 0);
+  } else if (rangeKey === '30d') {
+    start.setDate(end.getDate() - 29);
+  } else {
+    start.setDate(end.getDate() - 6);
+  }
+
+  const toDate = (value: Date) => value.toISOString().slice(0, 10);
+
+  return {
+    start_date: toDate(start),
+    end_date: toDate(end),
+    granularity: rangeKey === '24h' ? ('hour' ) : ('day' ),
+  };
+}
+
+function formatCost(value?: number) {
   if (typeof value !== 'number' || Number.isNaN(value)) return '$0.00';
   return `$${value.toFixed(2)}`;
 }
@@ -85,16 +108,20 @@ function MetricTile({ title, value, tone = 'default' }: { title: string; value: 
   return (
     <View style={{ flex: 1, minWidth: 0, backgroundColor, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 12 }}>
       <Text style={{ fontSize: 11, color: colors.subtext }}>{title}</Text>
-      <Text numberOfLines={1} style={{ marginTop: 6, fontSize: tone === 'accent' ? 20 : 16, fontWeight: '800', color: valueColor }}>
+      <Text numberOfLines={1} style={{ marginTop: 6, fontSize: 16, fontWeight: '800', color: valueColor }}>
         {value}
       </Text>
     </View>
   );
 }
 
-function UserCard({ user }: { user: AdminUser }) {
+function UserCard({ user, usage }: { user: AdminUser; usage?: UsageStats }) {
   const isAdmin = user.role?.trim().toLowerCase() === 'admin';
-  const statusLabel = `${isAdmin ? 'admin · ' : ''}${user.status || 'active'}`;
+  const userNameLabel = getUserNameLabel(user);
+  const statusLabel = `${isAdmin ? 'admin · ' : ''}${user.status || 'active'} · ${userNameLabel}`;
+  const totalCost = Number(usage?.total_account_cost ?? usage?.total_actual_cost ?? usage?.total_cost ?? 0);
+  const totalTokens = Number(usage?.total_tokens ?? 0);
+  const totalRequests = Number(usage?.total_requests ?? 0);
 
   return (
     <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 14 }}>
@@ -109,8 +136,9 @@ function UserCard({ user }: { user: AdminUser }) {
       </View>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        <MetricTile title="金额" value={formatBalance(Number(user.balance ?? 0))} tone="accent" />
-        <MetricTile title="名称" value={getUserNameLabel(user)} />
+        <MetricTile title="消费" value={formatCost(totalCost)} tone="accent" />
+        <MetricTile title="总 Token" value={formatTokenValue(totalTokens)} />
+        <MetricTile title="总请求" value={formatCompactNumber(totalRequests)} />
       </View>
     </View>
   );
@@ -118,7 +146,7 @@ function UserCard({ user }: { user: AdminUser }) {
 
 export default function UsersScreen() {
   const config = useSnapshot(adminConfigState);
-  const hasAccount = Boolean(config.baseUrl.trim());
+  const hasAccount = hasAuthenticatedAdminSession(config);
   const [searchText, setSearchText] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const debouncedSearchText = useDebouncedValue(searchText, 250);
@@ -129,6 +157,8 @@ export default function UsersScreen() {
     enabled: hasAccount,
   });
 
+  const usageRange = useMemo(() => getDateRange('7d'), []);
+
   const users = useMemo(() => {
     const items = [...(usersQuery.data?.items ?? [])];
     items.sort((left, right) => {
@@ -137,6 +167,20 @@ export default function UsersScreen() {
     });
     return items;
   }, [sortOrder, usersQuery.data?.items]);
+
+  const usageQueries = useQueries({
+    queries: users.map((user) => ({
+      queryKey: ['usage-stats', 'user', user.id, '7d', usageRange.start_date, usageRange.end_date],
+      queryFn: () => getUsageStats({ ...usageRange, user_id: user.id }),
+      enabled: hasAccount,
+      staleTime: 60_000,
+    })),
+  });
+
+  const usageByUserId = useMemo(
+    () => new Map(users.map((user, index) => [user.id, usageQueries[index]?.data] as const)),
+    [users, usageQueries]
+  );
 
   const errorMessage = getErrorMessage(usersQuery.error);
 
@@ -212,7 +256,7 @@ export default function UsersScreen() {
                   router.push(`/users/${item.id}`);
                 }}
               >
-                <UserCard user={item} />
+                <UserCard user={item} usage={usageByUserId.get(item.id)} />
               </Pressable>
             )}
           />

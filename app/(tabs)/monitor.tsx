@@ -8,8 +8,8 @@ import { BarChartCard } from '@/src/components/bar-chart-card';
 import { formatTokenValue } from '@/src/lib/formatters';
 import { DonutChartCard } from '@/src/components/donut-chart-card';
 import { LineTrendChart } from '@/src/components/line-trend-chart';
-import { getAdminSettings, getDashboardModels, getDashboardStats, getDashboardTrend, listAccounts } from '@/src/services/admin';
-import { adminConfigState } from '@/src/store/admin-config';
+import { getAdminSettings, getDashboardModels, getDashboardStats, getDashboardTrend, listAllAccounts } from '@/src/services/admin';
+import { adminConfigState, hasAuthenticatedAdminSession } from '@/src/store/admin-config';
 
 const { useSnapshot } = require('valtio/react');
 
@@ -40,6 +40,38 @@ const RANGE_TITLE_MAP: Record<RangeKey, string> = {
   '7d': '7D',
   '30d': '30D',
 };
+
+function hasAccountError(account: { status?: string; error_message?: string | null }) {
+  return Boolean(account.status === 'error' || account.error_message);
+}
+
+function hasAccountRateLimited(account: {
+  rate_limit_reset_at?: string | null;
+  extra?: Record<string, unknown>;
+}) {
+  if (account.rate_limit_reset_at) {
+    const resetTime = new Date(account.rate_limit_reset_at).getTime();
+    if (!Number.isNaN(resetTime) && resetTime > Date.now()) {
+      return true;
+    }
+  }
+
+  const modelLimits = account.extra?.model_rate_limits;
+  if (!modelLimits || typeof modelLimits !== 'object' || Array.isArray(modelLimits)) {
+    return false;
+  }
+
+  const now = Date.now();
+  return Object.values(modelLimits as Record<string, unknown>).some((info) => {
+    if (!info || typeof info !== 'object' || Array.isArray(info)) return false;
+
+    const resetAt = (info as { rate_limit_reset_at?: unknown }).rate_limit_reset_at;
+    if (typeof resetAt !== 'string' || !resetAt.trim()) return false;
+
+    const resetTime = new Date(resetAt).getTime();
+    return !Number.isNaN(resetTime) && resetTime > now;
+  });
+}
 
 function getDateRange(rangeKey: RangeKey) {
   const end = new Date();
@@ -136,13 +168,18 @@ function StatCard({ title, value, detail }: { title: string; value: string; deta
 
 export default function MonitorScreen() {
   const config = useSnapshot(adminConfigState);
-  const hasAccount = Boolean(config.baseUrl.trim());
+  const hasAccount = hasAuthenticatedAdminSession(config);
   const [rangeKey, setRangeKey] = useState<RangeKey>('7d');
   const range = useMemo(() => getDateRange(rangeKey), [rangeKey]);
 
   const statsQuery = useQuery({ queryKey: ['monitor-stats'], queryFn: getDashboardStats, enabled: hasAccount });
   const settingsQuery = useQuery({ queryKey: ['admin-settings'], queryFn: getAdminSettings, enabled: hasAccount });
-  const accountsQuery = useQuery({ queryKey: ['monitor-accounts'], queryFn: () => listAccounts(''), enabled: hasAccount });
+  const accountPageSize = Math.max(statsQuery.data?.total_accounts ?? 20, 20);
+  const accountsQuery = useQuery({
+    queryKey: ['monitor-accounts', accountPageSize],
+    queryFn: () => listAllAccounts(''),
+    enabled: hasAccount,
+  });
   const trendQuery = useQuery({
     queryKey: ['monitor-trend', rangeKey, range.start_date, range.end_date, range.granularity],
     queryFn: () => getDashboardTrend(range),
@@ -168,9 +205,12 @@ export default function MonitorScreen() {
   const trend = trendQuery.data?.trend ?? [];
   const topModels = (modelsQuery.data?.models ?? []).slice(0, 5);
   const errorMessage = getErrorMessage(statsQuery.error ?? settingsQuery.error ?? accountsQuery.error ?? trendQuery.error ?? modelsQuery.error);
-  const currentPageErrorAccounts = accounts.filter((item) => item.status === 'error' || item.error_message).length;
-  const currentPagePausedAccounts = accounts.filter((item) => item.schedulable === false && item.status !== 'error' && !item.error_message).length;
-  const currentPageBusyAccounts = accounts.filter((item) => (item.current_concurrency ?? 0) > 0 && item.status !== 'error' && !item.error_message).length;
+  const currentPageErrorAccounts = accounts.filter(hasAccountError).length;
+  const currentPageLimitedAccounts = accounts.filter((item) => hasAccountRateLimited(item)).length;
+  const currentPageBusyAccounts = accounts.filter((item) => {
+    if (hasAccountError(item) || hasAccountRateLimited(item)) return false;
+    return (item.current_concurrency ?? 0) > 0;
+  }).length;
   const totalAccounts = stats?.total_accounts ?? accountsQuery.data?.total ?? accounts.length;
   const aggregatedErrorAccounts = stats?.error_accounts ?? 0;
   const errorAccounts = Math.max(aggregatedErrorAccounts, currentPageErrorAccounts);
@@ -271,7 +311,7 @@ export default function MonitorScreen() {
                 detail={`TPM ${formatNumber(stats?.tpm)}`}
               />
             </View>
-            <Section title="账号概览" subtitle="总数、健康、异常和暂停状态一览">
+            <Section title="账号概览" subtitle="总数、健康、异常和限流状态一览">
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
                   <Text style={{ fontSize: 11, color: '#8a8072' }}>总数</Text>
@@ -286,11 +326,11 @@ export default function MonitorScreen() {
                   <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.danger }}>{formatNumber(errorAccounts)}</Text>
                 </View>
                 <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                  <Text style={{ fontSize: 11, color: '#8a8072' }}>暂停</Text>
-                  <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(currentPagePausedAccounts)}</Text>
+                  <Text style={{ fontSize: 11, color: '#8a8072' }}>限流</Text>
+                  <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(currentPageLimitedAccounts)}</Text>
                 </View>
               </View>
-              <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>总数 / 健康 / 异常优先使用后端聚合字段；暂停与繁忙基于当前页账号列表。</Text>
+              <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>总数 / 健康 / 异常优先使用后端聚合字段；限流与繁忙基于当前页账号列表。</Text>
             </Section>
 
             {throughputPoints.length > 1 ? (
@@ -318,13 +358,13 @@ export default function MonitorScreen() {
 
             <DonutChartCard
               title="账号健康"
-              subtitle="健康、繁忙、暂停、异常分布"
+              subtitle="健康、繁忙、限流、异常分布"
               centerLabel="总账号"
               centerValue={formatNumber(totalAccounts)}
               segments={[
                 { label: '健康', value: healthyAccounts, color: '#1d5f55' },
                 { label: '繁忙', value: currentPageBusyAccounts, color: '#d38b36' },
-                { label: '暂停', value: currentPagePausedAccounts, color: '#7d7468' },
+                { label: '限流', value: currentPageLimitedAccounts, color: '#7d7468' },
                 { label: '异常', value: errorAccounts, color: '#a34d2d' },
               ]}
             />
