@@ -1,6 +1,21 @@
 import { adminConfigState } from '@/src/store/admin-config';
 import type { ApiEnvelope } from '@/src/types/admin';
 
+function buildRequestUrl(baseUrl: string, path: string) {
+  const normalizedBase = baseUrl.trim().replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const duplicatedPrefixes = ['/api/v1', '/api'];
+
+  for (const prefix of duplicatedPrefixes) {
+    if (normalizedBase.endsWith(prefix) && normalizedPath.startsWith(`${prefix}/`)) {
+      const baseWithoutPrefix = normalizedBase.slice(0, -prefix.length);
+      return `${baseWithoutPrefix}${normalizedPath}`;
+    }
+  }
+
+  return `${normalizedBase}${normalizedPath}`;
+}
+
 export async function adminFetch<T>(
   path: string,
   init: RequestInit = {},
@@ -27,15 +42,16 @@ export async function adminFetch<T>(
     headers.set('Idempotency-Key', options.idempotencyKey);
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetch(buildRequestUrl(baseUrl, path), {
     ...init,
     headers,
   });
 
   let json: ApiEnvelope<T>;
+  const rawText = await response.text();
 
   try {
-    json = (await response.json()) as ApiEnvelope<T>;
+    json = JSON.parse(rawText) as ApiEnvelope<T>;
   } catch {
     throw new Error('INVALID_SERVER_RESPONSE');
   }

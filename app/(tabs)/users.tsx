@@ -130,7 +130,7 @@ function UserCard({ user, usage }: { user: AdminUser; usage?: UsageStats }) {
           <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{user.email}</Text>
           <Text style={{ marginTop: 4, fontSize: 12, color: colors.subtext }}>最近使用 {formatActivityTime(user.last_used_at || user.updated_at || user.created_at)}</Text>
         </View>
-        <View style={{ alignSelf: 'flex-start', backgroundColor: user.status === 'inactive' ? '#cfc5b7' : colors.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
+        <View style={{ alignSelf: 'flex-start', backgroundColor: user.status === 'inactive' || user.status === 'disabled' ? '#cfc5b7' : colors.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
           <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>{statusLabel}</Text>
         </View>
       </View>
@@ -187,9 +187,24 @@ export default function UsersScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.page }}>
       <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 14 }}>
-        <View style={{ marginBottom: 10 }}>
-          <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>用户</Text>
-          <Text style={{ marginTop: 4, fontSize: 12, color: '#8a8072' }}>查看用户列表并进入详情页管理账号。</Text>
+        <View style={{ marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>用户</Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: '#8a8072' }}>查看用户列表并进入详情页管理账号。</Text>
+          </View>
+          <Pressable
+            onPress={() => router.push('/users/create-user')}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: colors.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 24, lineHeight: 24, fontWeight: '500' }}>+</Text>
+          </Pressable>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>

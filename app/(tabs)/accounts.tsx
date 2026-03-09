@@ -198,7 +198,17 @@ export default function AccountsScreen() {
     <ScreenShell
       title="账号管理"
       subtitle="看单账号状态、并发、最近使用和异常信息。"
-      titleAside={<Text className="text-[11px] text-[#a2988a]">更接近网页后台的账号视图。</Text>}
+      titleAside={(
+        <View className="flex-row items-center gap-2">
+          <Text className="text-[11px] text-[#a2988a]">更接近网页后台的账号视图。</Text>
+          <Pressable
+            onPress={() => router.push('/accounts/create')}
+            className="h-8 w-8 items-center justify-center rounded-[10px] bg-[#1d5f55]"
+          >
+            <Text className="text-xl leading-5 text-white">+</Text>
+          </Pressable>
+        </View>
+      )}
       variant="minimal"
       scroll={false}
     >

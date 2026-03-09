@@ -8,7 +8,7 @@ import { BarChartCard } from '@/src/components/bar-chart-card';
 import { formatTokenValue } from '@/src/lib/formatters';
 import { DonutChartCard } from '@/src/components/donut-chart-card';
 import { LineTrendChart } from '@/src/components/line-trend-chart';
-import { getAdminSettings, getDashboardModels, getDashboardStats, getDashboardTrend, listAllAccounts } from '@/src/services/admin';
+import { getAdminSettings, getDashboardModels, getDashboardStats, getDashboardTrend, listAccounts } from '@/src/services/admin';
 import { adminConfigState, hasAuthenticatedAdminSession } from '@/src/store/admin-config';
 
 const { useSnapshot } = require('valtio/react');
@@ -172,23 +172,37 @@ export default function MonitorScreen() {
   const [rangeKey, setRangeKey] = useState<RangeKey>('7d');
   const range = useMemo(() => getDateRange(rangeKey), [rangeKey]);
 
-  const statsQuery = useQuery({ queryKey: ['monitor-stats'], queryFn: getDashboardStats, enabled: hasAccount });
-  const settingsQuery = useQuery({ queryKey: ['admin-settings'], queryFn: getAdminSettings, enabled: hasAccount });
-  const accountPageSize = Math.max(statsQuery.data?.total_accounts ?? 20, 20);
-  const accountsQuery = useQuery({
-    queryKey: ['monitor-accounts', accountPageSize],
-    queryFn: () => listAllAccounts(''),
+  const statsQuery = useQuery({
+    queryKey: ['monitor-stats'],
+    queryFn: getDashboardStats,
     enabled: hasAccount,
+    staleTime: 60_000,
+  });
+  const settingsQuery = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: getAdminSettings,
+    enabled: hasAccount,
+    staleTime: 120_000,
+  });
+  const accountsQuery = useQuery({
+    queryKey: ['monitor-accounts'],
+    queryFn: () => listAccounts(''),
+    enabled: hasAccount,
+    staleTime: 60_000,
   });
   const trendQuery = useQuery({
     queryKey: ['monitor-trend', rangeKey, range.start_date, range.end_date, range.granularity],
     queryFn: () => getDashboardTrend(range),
     enabled: hasAccount,
+    staleTime: 60_000,
+    placeholderData: (previousData) => previousData,
   });
   const modelsQuery = useQuery({
     queryKey: ['monitor-models', rangeKey, range.start_date, range.end_date],
     queryFn: () => getDashboardModels(range),
     enabled: hasAccount,
+    staleTime: 60_000,
+    placeholderData: (previousData) => previousData,
   });
 
   function refetchAll() {
@@ -381,22 +395,11 @@ export default function MonitorScreen() {
               formatValue={formatCompactNumber}
             />
 
-            <Section title="趋势摘要" subtitle="图表 + 最近几个统计点的请求、Token 和成本变化">
+            <Section title="趋势摘要" subtitle="最近几个统计点的请求、Token 和成本变化">
               {latestTrendPoints.length === 0 ? (
                 <Text style={{ fontSize: 14, color: colors.subtext }}>当前时间范围没有趋势数据。</Text>
               ) : (
                 <View style={{ gap: 12 }}>
-                  {throughputPoints.length > 1 ? (
-                    <LineTrendChart
-                      title="摘要 Token 趋势"
-                      subtitle="最近统计点的 Token 变化"
-                      points={throughputPoints.slice(-6)}
-                      color="#a34d2d"
-                      formatValue={formatTokenDisplay}
-                      compact
-                    />
-                  ) : null}
-
                   <View style={{ gap: 10 }}>
                     {latestTrendPoints.map((point) => (
                       <View key={point.date} style={{ backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>

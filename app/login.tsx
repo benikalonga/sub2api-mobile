@@ -66,6 +66,7 @@ export default function LoginScreen() {
   });
   const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
   const [connectionMessage, setConnectionMessage] = useState('');
+  const [showAdminKey, setShowAdminKey] = useState(false);
 
   if (hasAccount) {
     return <Redirect href="/monitor" />;
@@ -114,21 +115,38 @@ export default function LoginScreen() {
                 control={control}
                 name="adminApiKey"
                 render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    value={value}
-                    onChangeText={(text) => {
-                      if (connectionState !== 'idle') {
-                        setConnectionState('idle');
-                        setConnectionMessage('');
-                      }
-                      onChange(text);
-                    }}
-                    placeholder="admin-xxxxxxxx"
-                    placeholderTextColor="#9b9081"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={{ backgroundColor: colors.mutedCard, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: colors.text }}
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <TextInput
+                      value={value}
+                      onChangeText={(text) => {
+                        if (connectionState !== 'idle') {
+                          setConnectionState('idle');
+                          setConnectionMessage('');
+                        }
+                        onChange(text);
+                      }}
+                      placeholder="admin-xxxxxxxx"
+                      placeholderTextColor="#9b9081"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      secureTextEntry={!showAdminKey}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.mutedCard,
+                        borderRadius: 16,
+                        paddingHorizontal: 16,
+                        paddingVertical: 14,
+                        fontSize: 16,
+                        color: colors.text,
+                      }}
+                    />
+                    <Pressable
+                      onPress={() => setShowAdminKey((value) => !value)}
+                      style={{ backgroundColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4e463e' }}>{showAdminKey ? '隐藏' : '显示'}</Text>
+                    </Pressable>
+                  </View>
                 )}
               />
             </View>

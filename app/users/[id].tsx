@@ -2,11 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LineTrendChart } from '@/src/components/line-trend-chart';
-import { getDashboardSnapshot, getUsageStats, getUser, listUserApiKeys, updateUserBalance } from '@/src/services/admin';
+import { getDashboardSnapshot, getUsageStats, getUser, listUserApiKeys, updateUserBalance, updateUserStatus } from '@/src/services/admin';
 import type { AdminApiKey, BalanceOperation } from '@/src/types/admin';
 
 const colors = {
@@ -84,7 +84,7 @@ function formatTokenValue(value?: number | null) {
 }
 
 
-function formatQuota(quotaUsed?: number | null, quota?: number | null) {
+function formatQuotaUsage(quotaUsed?: number | null, quota?: number | null) {
   const used = Number(quotaUsed ?? 0);
   const limit = Number(quota ?? 0);
 
@@ -92,7 +92,7 @@ function formatQuota(quotaUsed?: number | null, quota?: number | null) {
     return '∞';
   }
 
-  return `${used} / ${limit}`;
+  return `${used}`;
 }
 
 function formatTime(value?: string | null) {
@@ -168,8 +168,8 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 
 function StatusBadge({ text }: { text: string }) {
   const normalized = text.toLowerCase();
-  const backgroundColor = normalized === 'active' ? '#dff4ea' : normalized === 'inactive' ? '#ece5da' : '#f7e1d6';
-  const color = normalized === 'active' ? '#17663f' : normalized === 'inactive' ? '#6f665c' : '#a4512b';
+  const backgroundColor = normalized === 'active' ? '#dff4ea' : normalized === 'inactive' || normalized === 'disabled' ? '#ece5da' : '#f7e1d6';
+  const color = normalized === 'active' ? '#17663f' : normalized === 'inactive' || normalized === 'disabled' ? '#6f665c' : '#a4512b';
 
   return (
     <View style={{ backgroundColor, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
@@ -223,7 +223,7 @@ function KeyItem({ item, copied, onCopy }: { item: AdminApiKey; copied: boolean;
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 11, color: colors.subtext }}>已用额度</Text>
-          <Text style={{ marginTop: 4, fontSize: 16, fontWeight: '700', color: colors.text }}>{formatQuota(item.quota_used, item.quota)}</Text>
+          <Text style={{ marginTop: 4, fontSize: 16, fontWeight: '700', color: colors.text }}>{formatQuotaUsage(item.quota_used, item.quota)}</Text>
         </View>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
           <Text style={{ fontSize: 11, color: colors.subtext }}>最后使用时间</Text>
@@ -243,6 +243,7 @@ export default function UserDetailScreen() {
   const [amount, setAmount] = useState('10');
   const [notes, setNotes] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
   const [rangeKey, setRangeKey] = useState<RangeKey>('7d');
@@ -300,6 +301,16 @@ export default function UserDetailScreen() {
     onError: (error) => setFormError(getErrorMessage(error)),
   });
 
+  const statusMutation = useMutation({
+    mutationFn: (status: 'active' | 'disabled') => updateUserStatus(userId, status),
+    onSuccess: () => {
+      setStatusError(null);
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error) => setStatusError(getErrorMessage(error)),
+  });
+
   const user = userQuery.data;
   const apiKeys = apiKeysQuery.data?.items ?? [];
 
@@ -342,6 +353,24 @@ export default function UserDetailScreen() {
     setTimeout(() => {
       setCopiedKeyId((current) => (current === item.id ? null : current));
     }, 1500);
+  }
+
+  function handleToggleUserStatus() {
+    if (!user) return;
+    const nextStatus: 'active' | 'disabled' = user.status === 'disabled' ? 'active' : 'disabled';
+    const actionLabel = nextStatus === 'disabled' ? '禁用' : '启用';
+
+    Alert.alert(`${actionLabel}用户`, `确认要${actionLabel}该用户吗？`, [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '确认',
+        style: nextStatus === 'disabled' ? 'destructive' : 'default',
+        onPress: () => {
+          setStatusError(null);
+          statusMutation.mutate(nextStatus);
+        },
+      },
+    ]);
   }
 
   return (
@@ -392,6 +421,36 @@ export default function UserDetailScreen() {
                   <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{formatTime(user.last_used_at || user.updated_at || user.created_at)}</Text>
                 </View>
               </View>
+
+              <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 12, color: colors.subtext }}>用户状态</Text>
+                  <StatusBadge text={user.status || 'active'} />
+                </View>
+                <Pressable
+                  disabled={statusMutation.isPending || user.role?.toLowerCase() === 'admin'}
+                  onPress={handleToggleUserStatus}
+                  style={{
+                    backgroundColor: user.status === 'disabled' ? colors.primary : '#8b3f1f',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    opacity: statusMutation.isPending || user.role?.toLowerCase() === 'admin' ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                    {statusMutation.isPending ? '处理中...' : user.status === 'disabled' ? '启用用户' : '禁用用户'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {user.role?.toLowerCase() === 'admin' ? <Text style={{ marginTop: 8, fontSize: 12, color: colors.subtext }}>管理员用户不支持禁用。</Text> : null}
+
+              {statusError ? (
+                <View style={{ marginTop: 10, backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
+                  <Text style={{ color: colors.errorText }}>{statusError}</Text>
+                </View>
+              ) : null}
             </Section>
           ) : null}
 

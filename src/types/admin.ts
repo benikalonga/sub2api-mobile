@@ -197,3 +197,31 @@ export type AdminAccount = {
   groups?: AdminGroup[];
   extra?: Record<string, string | number | boolean | null>;
 };
+
+export type AccountType = 'apikey' | 'oauth' | 'setup-token' | 'upstream';
+
+export type CreateAccountRequest = {
+  name: string;
+  platform: string;
+  type: AccountType;
+  credentials: Record<string, string | number | boolean | null | undefined>;
+  extra?: Record<string, string | number | boolean | null | undefined>;
+  notes?: string;
+  proxy_id?: number;
+  concurrency?: number;
+  priority?: number;
+  rate_multiplier?: number;
+  group_ids?: number[];
+};
+
+export type CreateUserRequest = {
+  email: string;
+  password: string;
+  username?: string;
+  notes?: string;
+  role?: 'user' | 'admin';
+  status?: 'active' | 'disabled';
+  balance?: number;
+  concurrency?: number;
+  [key: string]: string | number | boolean | null | undefined;
+};

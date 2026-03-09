@@ -11,6 +11,8 @@ import type {
   DashboardSnapshot,
   DashboardStats,
   DashboardTrend,
+  CreateAccountRequest,
+  CreateUserRequest,
   PaginatedData,
   UsageStats,
   UserUsageSummary,
@@ -95,6 +97,13 @@ export function getUser(userId: number) {
   return adminFetch<AdminUser>(`/api/v1/admin/users/${userId}`);
 }
 
+export function createUser(body: CreateUserRequest) {
+  return adminFetch<AdminUser>('/api/v1/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export function getUserUsage(userId: number, period: 'day' | 'week' | 'month' = 'month') {
   return adminFetch<UserUsageSummary>(`/api/v1/admin/users/${userId}/usage${buildQuery({ period })}`);
 }
@@ -119,6 +128,13 @@ export function updateUserBalance(
   );
 }
 
+export function updateUserStatus(userId: number, status: 'active' | 'disabled') {
+  return adminFetch<AdminUser>(`/api/v1/admin/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export function listGroups(search = '') {
   return adminFetch<PaginatedData<AdminGroup>>(
     `/api/v1/admin/groups${buildQuery({ page: 1, page_size: 20, search: search.trim() })}`
@@ -137,6 +153,13 @@ export function listAccounts(search = '') {
 
 export function getAccount(accountId: number) {
   return adminFetch<AdminAccount>(`/api/v1/admin/accounts/${accountId}`);
+}
+
+export function createAccount(body: CreateAccountRequest) {
+  return adminFetch<AdminAccount>('/api/v1/admin/accounts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 export function getAccountTodayStats(accountId: number) {

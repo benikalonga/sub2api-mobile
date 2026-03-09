@@ -50,6 +50,45 @@ export default function RootLayout() {
                 headerShadowVisible: false,
               }}
             />
+            <Stack.Screen
+              name="users/create-account"
+              options={{
+                animation: 'slide_from_right',
+                presentation: 'card',
+                headerShown: true,
+                title: '添加账号',
+                headerBackTitle: '返回',
+                headerTintColor: '#16181a',
+                headerStyle: { backgroundColor: '#f4efe4' },
+                headerShadowVisible: false,
+              }}
+            />
+            <Stack.Screen
+              name="users/create-user"
+              options={{
+                animation: 'slide_from_right',
+                presentation: 'card',
+                headerShown: true,
+                title: '添加用户',
+                headerBackTitle: '返回',
+                headerTintColor: '#16181a',
+                headerStyle: { backgroundColor: '#f4efe4' },
+                headerShadowVisible: false,
+              }}
+            />
+            <Stack.Screen
+              name="accounts/create"
+              options={{
+                animation: 'slide_from_right',
+                presentation: 'card',
+                headerShown: true,
+                title: '添加账号',
+                headerBackTitle: '返回',
+                headerTintColor: '#16181a',
+                headerStyle: { backgroundColor: '#f4efe4' },
+                headerShadowVisible: false,
+              }}
+            />
             <Stack.Screen name="accounts/[id]" options={{ presentation: 'card' }} />
           </Stack>
         )}
