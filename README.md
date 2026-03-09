@@ -15,7 +15,6 @@ Mobile-first admin console for Sub2API operations, built with Expo + React Nativ
 - Cross-platform app (iOS / Android / Web) for operational and admin workflows.
 - Server health and metrics monitoring views.
 - User, API key, account, and group management pages.
-- Built-in local admin proxy (`server/index.js`) for safer web-side admin integration.
 - Multi-account admin server switching in settings.
 
 ## Tech Stack
@@ -26,7 +25,6 @@ Mobile-first admin console for Sub2API operations, built with Expo + React Nativ
 - Expo Router
 - TanStack Query
 - Valtio
-- Express (local proxy)
 
 ## Prerequisites
 
@@ -54,25 +52,6 @@ npm run android
 npm run ios
 npm run web
 ```
-
-## Local Admin Proxy (Web-Friendly)
-
-For web usage with admin APIs, start the local proxy with environment variables:
-
-```bash
-SUB2API_BASE_URL="https://your-upstream-host.example.com" \
-SUB2API_ADMIN_API_KEY="admin-xxxx" \
-ALLOW_ORIGIN="http://localhost:8081" \
-npm run proxy
-```
-
-Then point the app `Base URL` to:
-
-```txt
-http://localhost:8787
-```
-
-See full details in [docs/LOCAL_PROXY_SETUP.md](docs/LOCAL_PROXY_SETUP.md).
 
 ## Build & Release
 
