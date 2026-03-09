@@ -2,9 +2,13 @@
 
 Mobile-first admin console for Sub2API operations, built with Expo + React Native + Expo Router.
 
+<p align="left">
+  <img src="icons/ios/AppIcon.appiconset/icon-1024.png" alt="sub2api-mobile logo" width="96" />
+</p>
+
 ## Mobile Preview
 
-![Mobile Preview](docs/mobile.jpg)
+<img src="docs/mobile.jpg" alt="Mobile Preview" width="420" />
 
 ## Highlights
 
