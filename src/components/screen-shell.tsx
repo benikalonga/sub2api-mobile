@@ -1,5 +1,6 @@
 import type { PropsWithChildren, ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Edge } from 'react-native-safe-area-context';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 
 type ScreenShellProps = PropsWithChildren<{
@@ -14,6 +15,7 @@ type ScreenShellProps = PropsWithChildren<{
   contentGapClassName?: string;
   refreshing?: boolean;
   onRefresh?: () => void | Promise<void>;
+  safeAreaEdges?: Edge[];
 }>;
 
 function ScreenHeader({
@@ -32,7 +34,7 @@ function ScreenHeader({
             {titleAside}
           </View>
           {subtitle ? (
-            <Text numberOfLines={1} className="mt-1 text-[11px] leading-4 text-[#a2988a]">
+            <Text numberOfLines={1} className="mt-1 text-[11px] leading-4 text-[#7d7468]">
               {subtitle}
             </Text>
           ) : null}
@@ -70,10 +72,11 @@ export function ScreenShell({
   contentGapClassName = 'mt-4 gap-4',
   refreshing = false,
   onRefresh,
+  safeAreaEdges = ['top', 'bottom'],
 }: ScreenShellProps) {
   if (!scroll) {
     return (
-      <SafeAreaView className="flex-1 bg-[#f4efe4]">
+      <SafeAreaView edges={safeAreaEdges} style={{ flex: 1, backgroundColor: '#f4efe4' }}>
         <View className={`flex-1 ${horizontalInsetClassName} ${bottomInsetClassName}`}>
           <ScreenHeader title={title} subtitle={subtitle} titleAside={titleAside} right={right} variant={variant} />
           <View className={`flex-1 ${contentGapClassName}`}>{children}</View>
@@ -83,7 +86,7 @@ export function ScreenShell({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f4efe4]">
+    <SafeAreaView edges={safeAreaEdges} style={{ flex: 1, backgroundColor: '#f4efe4' }}>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

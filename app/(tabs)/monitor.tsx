@@ -325,26 +325,39 @@ export default function MonitorScreen() {
                 detail={`TPM ${formatNumber(stats?.tpm)}`}
               />
             </View>
-            <Section title="账号概览" subtitle="总数、健康、异常和限流状态一览">
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                  <Text style={{ fontSize: 11, color: '#8a8072' }}>总数</Text>
-                  <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(totalAccounts)}</Text>
+            <Section
+              title="账号概览"
+              subtitle="总数、健康、异常和限流状态一览"
+              right={(
+                <Pressable
+                  style={{ alignSelf: 'flex-start', backgroundColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}
+                  onPress={() => router.push('/accounts/overview')}
+                >
+                  <Text style={{ color: '#4e463e', fontSize: 12, fontWeight: '700' }}>账号清单</Text>
+                </Pressable>
+              )}
+            >
+              <Pressable onPress={() => router.push('/accounts/overview')}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
+                    <Text style={{ fontSize: 11, color: '#8a8072' }}>总数</Text>
+                    <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(totalAccounts)}</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
+                    <Text style={{ fontSize: 11, color: '#8a8072' }}>健康</Text>
+                    <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(healthyAccounts)}</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: colors.dangerBg, borderRadius: 14, padding: 12 }}>
+                    <Text style={{ fontSize: 11, color: colors.danger }}>异常</Text>
+                    <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.danger }}>{formatNumber(errorAccounts)}</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
+                    <Text style={{ fontSize: 11, color: '#8a8072' }}>限流</Text>
+                    <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(currentPageLimitedAccounts)}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                  <Text style={{ fontSize: 11, color: '#8a8072' }}>健康</Text>
-                  <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(healthyAccounts)}</Text>
-                </View>
-                <View style={{ flex: 1, backgroundColor: colors.dangerBg, borderRadius: 14, padding: 12 }}>
-                  <Text style={{ fontSize: 11, color: colors.danger }}>异常</Text>
-                  <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.danger }}>{formatNumber(errorAccounts)}</Text>
-                </View>
-                <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                  <Text style={{ fontSize: 11, color: '#8a8072' }}>限流</Text>
-                  <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(currentPageLimitedAccounts)}</Text>
-                </View>
-              </View>
-              <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>总数 / 健康 / 异常优先使用后端聚合字段；限流与繁忙基于当前页账号列表。</Text>
+                <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>总数 / 健康 / 异常优先使用后端聚合字段；限流与繁忙基于当前页账号列表。点击进入账号清单。</Text>
+              </Pressable>
             </Section>
 
             {throughputPoints.length > 1 ? (

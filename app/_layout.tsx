@@ -89,7 +89,19 @@ export default function RootLayout() {
                 headerShadowVisible: false,
               }}
             />
-            <Stack.Screen name="accounts/[id]" options={{ presentation: 'card' }} />
+            <Stack.Screen
+              name="accounts/overview"
+              options={{
+                animation: 'slide_from_right',
+                presentation: 'card',
+                headerShown: true,
+                title: '账号清单',
+                headerBackTitle: '返回',
+                headerTintColor: '#16181a',
+                headerStyle: { backgroundColor: '#f4efe4' },
+                headerShadowVisible: false,
+              }}
+            />
           </Stack>
         )}
       </QueryClientProvider>
