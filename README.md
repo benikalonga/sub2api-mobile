@@ -1,3 +1,5 @@
+> **Note:** This is a copy of [ckken/sub2api-mobile](https://github.com/ckken/sub2api-mobile), kept for AI code-review research. All credit goes to the original authors. Licensed under the original [MIT License](./LICENSE). See [UPSTREAM.md](./UPSTREAM.md) for details.
+
 <p align="center">
   <img src="icons/ios/AppIcon.appiconset/icon-1024.png" alt="sub2api-mobile logo" width="96" />
 </p>
