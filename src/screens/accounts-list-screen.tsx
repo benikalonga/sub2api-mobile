@@ -15,7 +15,7 @@ type AccountStatusFilter = 'all' | 'active' | 'paused' | 'error';
 type UsageSort = 'usage-desc' | 'usage-asc';
 type AccountVisualStatus = {
   filterKey: AccountStatusFilter;
-  label: '正常' | '暂停' | '异常';
+  label: 'Active' | 'Paused' | 'Error';
   badgeTone: 'success' | 'muted' | 'danger';
 };
 
@@ -41,12 +41,12 @@ function getAccountVisualStatus(account: AdminAccount): AccountVisualStatus {
   const isPausedStatus = ['inactive', 'disabled', 'paused', 'stop', 'stopped'].includes(normalizedStatus);
 
   if (getAccountError(account)) {
-    return { filterKey: 'error', label: '异常', badgeTone: 'danger' };
+    return { filterKey: 'error', label: 'Error', badgeTone: 'danger' };
   }
   if (isPausedStatus || account.schedulable === false) {
-    return { filterKey: 'paused', label: '暂停', badgeTone: 'muted' };
+    return { filterKey: 'paused', label: 'Paused', badgeTone: 'muted' };
   }
-  return { filterKey: 'active', label: '正常', badgeTone: 'success' };
+  return { filterKey: 'active', label: 'Active', badgeTone: 'success' };
 }
 
 type AccountsListScreenProps = {
@@ -144,7 +144,7 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
             <TextInput
               defaultValue=""
               onChangeText={setSearchText}
-              placeholder="搜索账号名称 / 平台"
+              placeholder="Search account name / platform"
               placeholderTextColor="#9b9081"
               className="ml-3 flex-1 text-base text-[#16181a]"
             />
@@ -152,10 +152,10 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
 
           <View className="mt-3 flex-row gap-2">
             {([
-              ['all', `全部 ${summary.total}`],
-              ['active', `正常 ${summary.active}`],
-              ['paused', `暂停 ${summary.paused}`],
-              ['error', `异常 ${summary.errors}`],
+              ['all', `All ${summary.total}`],
+              ['active', `Active ${summary.active}`],
+              ['paused', `Paused ${summary.paused}`],
+              ['error', `Error ${summary.errors}`],
             ] as const).map(([key, label]) => {
               const active = filter === key;
               return (
@@ -172,8 +172,8 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
 
           <View className="mt-3 flex-row gap-2">
             {([
-              ['usage-desc', '请求高→低'],
-              ['usage-asc', '请求低→高'],
+              ['usage-desc', 'Requests high→low'],
+              ['usage-asc', 'Requests low→high'],
             ] as const).map(([key, label]) => {
               const active = usageSort === key;
               return (
@@ -201,7 +201,7 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
       const groupsText = account.groups?.map((group) => group.name).filter(Boolean).slice(0, 3).join(' · ');
       const todayStats = todayByAccountId.get(account.id) ?? { requests: 0, tokens: 0, cost: 0 };
       const nextSchedulable = visualStatus.filterKey === 'paused';
-      const toggleLabel = nextSchedulable ? '恢复' : '暂停';
+      const toggleLabel = nextSchedulable ? 'Resume' : 'Pause';
       const testFeedback = testFeedbackByAccountId[account.id];
       const isTogglingCurrent = togglingAccountId === account.id && toggleMutation.isPending;
       const isTestingCurrent = testingAccountId === account.id && testMutation.isPending;
@@ -219,30 +219,30 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
                   {account.schedulable && !isError ? <ShieldCheck color="#7d7468" size={14} /> : <ShieldOff color="#7d7468" size={14} />}
-                  <Text className="text-sm text-[#7d7468]">状态：{statusText}</Text>
+                  <Text className="text-sm text-[#7d7468]">Status: {statusText}</Text>
                 </View>
-                <Text className="text-xs text-[#7d7468]">最近使用 {formatTime(account.last_used_at || account.updated_at)}</Text>
+                <Text className="text-xs text-[#7d7468]">Last used {formatTime(account.last_used_at || account.updated_at)}</Text>
               </View>
 
               <View className="flex-row gap-2">
                 <View className="flex-1 rounded-[14px] bg-[#f1ece2] px-3 py-3">
-                  <Text className="text-[11px] text-[#7d7468]">请求次数</Text>
+                  <Text className="text-[11px] text-[#7d7468]">Requests</Text>
                   <Text className="mt-1 text-sm font-bold text-[#16181a]">{todayStats.requests}</Text>
                 </View>
                 <View className="flex-1 rounded-[14px] bg-[#f1ece2] px-3 py-3">
-                  <Text className="text-[11px] text-[#7d7468]">消费金额</Text>
+                  <Text className="text-[11px] text-[#7d7468]">Spend</Text>
                   <Text className="mt-1 text-sm font-bold text-[#16181a]">${todayStats.cost.toFixed(2)}</Text>
                 </View>
                 <View className="flex-1 rounded-[14px] bg-[#f1ece2] px-3 py-3">
-                  <Text className="text-[11px] text-[#7d7468]">token消耗</Text>
+                  <Text className="text-[11px] text-[#7d7468]">Tokens used</Text>
                   <Text className="mt-1 text-sm font-bold text-[#16181a]">{formatTokenValue(todayStats.tokens)}</Text>
                 </View>
               </View>
 
-              <Text className="text-xs text-[#7d7468]">优先级 {account.priority ?? 0} · 倍率 {(account.rate_multiplier ?? 1).toFixed(2)}x</Text>
+              <Text className="text-xs text-[#7d7468]">Priority {account.priority ?? 0} · Rate {(account.rate_multiplier ?? 1).toFixed(2)}x</Text>
 
-              {groupsText ? <Text className="text-xs text-[#7d7468]">分组 {groupsText}</Text> : null}
-              {account.error_message ? <Text className="text-xs text-[#a4512b]">异常信息：{account.error_message}</Text> : null}
+              {groupsText ? <Text className="text-xs text-[#7d7468]">Groups {groupsText}</Text> : null}
+              {account.error_message ? <Text className="text-xs text-[#a4512b]">Error: {account.error_message}</Text> : null}
 
               <View className="flex-row gap-2">
                 <Pressable
@@ -253,10 +253,10 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
                     setTestingAccountId(account.id);
                     testMutation.mutate(account.id, {
                       onSuccess: () => {
-                        setTestFeedbackByAccountId((current) => ({ ...current, [account.id]: '测试成功' }));
+                        setTestFeedbackByAccountId((current) => ({ ...current, [account.id]: 'Test passed' }));
                       },
                       onError: (error) => {
-                        const message = error instanceof Error && error.message ? error.message : '测试失败';
+                        const message = error instanceof Error && error.message ? error.message : 'Test failed';
                         setTestFeedbackByAccountId((current) => ({ ...current, [account.id]: message }));
                       },
                       onSettled: () => {
@@ -265,7 +265,7 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
                     });
                   }}
                 >
-                  <Text className="text-xs font-semibold uppercase tracking-[1.2px] text-[#f6f1e8]">{isTestingCurrent ? '测试中...' : '测试'}</Text>
+                  <Text className="text-xs font-semibold uppercase tracking-[1.2px] text-[#f6f1e8]">{isTestingCurrent ? 'Testing...' : 'Test'}</Text>
                 </Pressable>
                 <Pressable
                   className="rounded-full bg-[#e7dfcf] px-4 py-2"
@@ -283,11 +283,11 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
                     });
                   }}
                 >
-                  <Text className="text-xs font-semibold uppercase tracking-[1.2px] text-[#4e463e]">{isTogglingCurrent ? '处理中...' : toggleLabel}</Text>
+                  <Text className="text-xs font-semibold uppercase tracking-[1.2px] text-[#4e463e]">{isTogglingCurrent ? 'Processing...' : toggleLabel}</Text>
                 </Pressable>
               </View>
 
-              {testFeedback ? <Text className="text-xs text-[#1d5f55]">测试结果：{testFeedback}</Text> : null}
+              {testFeedback ? <Text className="text-xs text-[#1d5f55]">Test result: {testFeedback}</Text> : null}
             </View>
           </ListCard>
         </View>
@@ -297,16 +297,16 @@ export function AccountsListScreen({ safeAreaEdges }: AccountsListScreenProps) {
   );
 
   const emptyState = useMemo(
-    () => <ListCard title="暂无账号" meta={errorMessage || '连上后这里会展示账号列表。'} icon={KeyRound} />,
+    () => <ListCard title="No accounts" meta={errorMessage || 'Once connected, accounts will appear here.'} icon={KeyRound} />,
     [errorMessage]
   );
 
   return (
     <ScreenShell
-      title="账号清单"
-      subtitle="查看名称、平台&类型、请求次数、消费金额、token消耗，并支持筛选与排序。"
+      title="Accounts"
+      subtitle="View name, platform and type, requests, spend and tokens used, with filtering and sorting."
       titleAside={(
-        <Text className="text-[11px] text-[#7d7468]">更接近网页后台的账号视图。</Text>
+        <Text className="text-[11px] text-[#7d7468]">An account view closer to the web admin.</Text>
       )}
       variant="minimal"
       scroll={false}

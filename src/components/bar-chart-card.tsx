@@ -79,7 +79,7 @@ export function BarChartCard({
           );
         })}
 
-        {items.length === 0 ? <Text className="text-sm text-[#7d7468]">暂无可视化数据</Text> : null}
+        {items.length === 0 ? <Text className="text-sm text-[#7d7468]">No data to display</Text> : null}
       </View>
     </View>
   );

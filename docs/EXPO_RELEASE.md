@@ -1,220 +1,204 @@
 # Expo Release
 
-当前项目已绑定新的 Expo / EAS 项目：
+This project is linked to an Expo / EAS project:
 
-- Owner: `ckken`
+- Owner: `your-expo-username`
 - Slug: `sub2api-mobile`
 - Project ID: `00000000-0000-0000-0000-000000000000`
 
-## 已完成配置
+## Configuration in place
 
-- `app.json` 已配置 `owner`
-- `app.json` 已配置 `scheme = sub2apimobile`
-- `app.json` 已配置 `runtimeVersion.policy = appVersion`
-- `app.json` 已配置 `updates.url`
-- `package.json` 已包含 `expo-dev-client`
-- `eas.json` 已配置 `development / preview / production` 三套 profile
+- `app.json` sets `owner`
+- `app.json` sets `scheme = sub2apimobile`
+- `app.json` sets `runtimeVersion.policy = appVersion`
+- `app.json` sets `updates.url`
+- `package.json` includes `expo-dev-client`
+- `eas.json` defines three profiles: `development / preview / production`
 
-## 登录状态检查
+## Check sign-in status
 
 ```bash
 npx expo whoami
 npx eas whoami
 ```
 
-## 关键结论
+## Key takeaways
 
-### 1. Expo Go 适合什么
+### 1. What Expo Go is good for
 
-`Expo Go` 适合：
+`Expo Go` works well for:
 
 - `npx expo start`
-- 本地 Metro 联调
-- 快速查看 JS / RN 页面改动
+- Local Metro development
+- Quickly checking JS / RN screen changes
 
-### 2. Expo Go 不适合什么
+### 2. What Expo Go is not good for
 
-这次已经实测确认：
+Confirmed in practice:
 
-- 不能把 `Expo Go` 当成 `EAS Update branch` 的稳定预览壳
-- 想在 Expo Updates 里通过 branch 打开新版本，应该使用 `development build / dev client`
+- `Expo Go` cannot be used as a stable preview shell for an `EAS Update branch`
+- To open a new version from a branch in Expo Updates, use a `development build / dev client`
 
-### 3. branch 预览要满足什么
+### 3. Requirements for branch previews
 
-要稳定预览 branch/update，需要同时满足：
+A stable branch/update preview needs all of the following:
 
-- 已发布 `eas update --branch <branch>`
-- App 壳支持 `expo-updates`
-- App 壳包含 `expo-dev-client` 或对应原生构建
-- 项目配置了自定义 `scheme`
-- `runtimeVersion` 与 update 一致
+- An update published with `eas update --branch <branch>`
+- An app shell that supports `expo-updates`
+- An app shell that includes `expo-dev-client` or a matching native build
+- A custom `scheme` configured for the project
+- A `runtimeVersion` that matches the update
 
-## 本地开发
+## Local development
 
 ```bash
 npm run start
 ```
 
-如果要用 dev client 连本地：
+To connect a dev client to the local server:
 
 ```bash
 npm run start:dev-client
 ```
 
-## 预览包
+## Preview build
 
 ```bash
 npm run eas:build:preview
 ```
 
-## Dev Client / 模拟器测试
+## Dev client / simulator testing
 
-开发构建：
+Development build:
 
 ```bash
 npm run eas:build:development
 ```
 
-也可以分平台：
+Or per platform:
 
 ```bash
 npm run eas:build:development:android
 npm run eas:build:development:ios
 ```
 
-当前 `development` profile 已配置：
+The `development` profile is configured with:
 
 - `developmentClient: true`
 - `distribution: internal`
 - `ios.simulator: true`
 
-适合先生成一个测试壳，后续再配合 `Expo / EAS Update` 做快速验证。
+This is a good way to build a test shell first, then iterate quickly with `Expo / EAS Update`.
 
-## 推荐发布流程
+## Recommended release flow
 
-### 方案 A：本地开发调试
+### Option A: local development and debugging
 
-适用于：
+Use for:
 
-- UI 改动
-- 页面白屏排查
-- 路由调试
+- UI changes
+- Investigating blank screens
+- Debugging routes
 
-命令：
+Command:
 
 ```bash
 npm run start
 ```
 
-### 方案 B：发 branch 给 dev client 验证
+### Option B: publish a branch for the dev client
 
-适用于：
+Use when you:
 
-- 想在 Expo Updates 里看到新的 branch/update
-- 想让测试壳直接吃 OTA
+- Want to see a new branch/update in Expo Updates
+- Want the test shell to pick up OTA updates directly
 
-步骤：
+Steps:
 
 ```bash
 npx eas-cli@latest update --branch preview --message "your message"
 ```
 
-然后在 dev client / development build 中验证对应 branch。
+Then verify the branch in the dev client / development build.
 
-### 方案 C：先出壳，再吃 OTA
+### Option C: build the shell first, then use OTA
 
-如果还没有合适的 dev client：
+If you do not have a suitable dev client yet:
 
 ```bash
 npm run eas:build:development:android
 npm run eas:build:development:ios
 ```
 
-装好开发壳后，再发：
+After installing the development shell, publish:
 
 ```bash
 npx eas-cli@latest update --branch preview --message "your message"
 ```
 
-## 本次实战记录
+## Troubleshooting
 
-本次已经验证通过的 OTA 发布命令：
+### 1. Works locally, blank screen after publishing to a branch
 
-```bash
-npx eas-cli@latest update --branch preview --message "align dev-client and user detail 2026-03-08"
-```
+Check:
 
-本次成功发布结果：
+- Whether you opened it in `Expo Go`
+- Whether the shell is a `development build`
+- Whether the project has a `scheme`
+- Whether `runtimeVersion` matches
 
-- Branch: `preview`
-- Message: `align dev-client and user detail 2026-03-08`
-- Update group ID: `b6744438-929d-4206-b1eb-0887eaf3f97d`
-- iOS update ID: `019ccd68-a2af-7ba1-af68-7958f454e93c`
-- Android update ID: `019ccd68-a2af-7166-9e9d-9619bd1b8e0e`
+### 2. Branch published, but the device did not update
 
-## 常见问题
+Confirm:
 
-### 1. 本地正常，发到 branch 后白屏
+- You are looking at the correct project
+- The branch is `preview`
+- The shell's channel matches
+- You are using a dev client / native preview shell
 
-先排查：
+### 3. Deep link error: no custom scheme defined
 
-- 当前打开的是不是 `Expo Go`
-- 当前壳是不是 `development build`
-- 项目是否配置了 `scheme`
-- `runtimeVersion` 是否匹配
+`app.json` has no custom `scheme`, or the native shell is outdated and needs a rebuild.
 
-### 2. branch 发上去了，但设备没更新
+## GitHub Actions build
 
-先确认：
+The repository includes a workflow: `.github/workflows/eas-build.yml`
 
-- 看的是不是正确 project
-- branch 是否是 `preview`
-- 壳的 channel 是否匹配
-- 使用的是不是 dev client / 原生预览壳
-
-### 3. Deep link 报错 no custom scheme defined
-
-说明 `app.json` 没有自定义 `scheme`，或者当前原生壳太旧，需要重新构建。
-
-## GitHub Actions 构建
-
-仓库已提供工作流：`.github/workflows/eas-build.yml`
-
-使用前需要在 GitHub 仓库 Secrets 里配置：
+Before using it, add this secret to the GitHub repository:
 
 - `EXPO_TOKEN`
 
-触发方式：
+To trigger it:
 
-1. 打开 GitHub 仓库的 `Actions`
-2. 选择 `EAS Build`
-3. 点击 `Run workflow`
-4. 选择：
-   - `profile`: `preview` 或 `production`
+1. Open the repository's `Actions` tab
+2. Select `EAS Build`
+3. Click `Run workflow`
+4. Choose:
+   - `profile`: `preview` or `production`
    - `platform`: `android` / `ios` / `all`
 
-工作流会执行：
+The workflow runs:
 
 ```bash
 npm ci
 npx eas build --non-interactive --profile <profile> --platform <platform>
 ```
 
-## 正式包
+## Production build
 
 ```bash
 npm run eas:build:production
 ```
 
-## OTA 更新
+## OTA updates
 
-预发：
+Preview:
 
 ```bash
 npx eas update --branch preview --message "preview update"
 ```
 
-正式：
+Production:
 
 ```bash
 npx eas update --branch production --message "production update"

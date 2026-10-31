@@ -38,21 +38,21 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="monitor"
         options={{
-          title: '概览',
+          title: 'Overview',
           tabBarIcon: ({ color, size }) => <ChartNoAxesCombined color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="users"
         options={{
-          title: '用户',
+          title: 'Users',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: '服务器',
+          title: 'Servers',
           tabBarIcon: ({ color, size }) => <Settings2 color={color} size={size} />,
         }}
       />

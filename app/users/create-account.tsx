@@ -44,19 +44,19 @@ function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先到服务器页填写服务地址。';
+        return 'Set the server URL on the Servers page first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先到服务器页填写 Admin Token。';
+        return 'Set the Admin Token on the Servers page first.';
       case 'INVALID_SERVER_RESPONSE':
-        return '服务返回格式异常，请确认后端接口可用并检查网关日志。';
+        return 'The service returned an unexpected format. Check that the backend API is up and review the gateway logs.';
       case 'REQUEST_FAILED':
-        return '请求失败，请检查服务地址、Token 和网络连通性。';
+        return 'Request failed. Check the server URL, token and network connection.';
       default:
         return error.message;
     }
   }
 
-  return '创建账号失败，请稍后重试。';
+  return 'Failed to create the account. Please try again later.';
 }
 
 function parseNumberValue(raw: string) {
@@ -88,13 +88,13 @@ function parseJsonObject(raw: string) {
         && valueType !== 'number'
         && valueType !== 'boolean'
       ) {
-        throw new Error('JSON 仅支持 string / number / boolean / null。');
+        throw new Error('JSON only supports string / number / boolean / null.');
       }
     }
 
     return parsed;
   }
-  throw new Error('JSON 需要是对象格式。');
+  throw new Error('JSON must be an object.');
 }
 
 export default function CreateAccountScreen() {
@@ -163,15 +163,15 @@ export default function CreateAccountScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '添加账号' }} />
+      <Stack.Screen options={{ title: 'Add account' }} />
       <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.page }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-          <Section title="基础配置">
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>账号名称</Text>
+          <Section title="Basic settings">
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Account name</Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="例如：openai-main"
+              placeholder="e.g. openai-main"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -185,7 +185,7 @@ export default function CreateAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>平台</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Platform</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
               {PLATFORM_OPTIONS.map((item) => {
                 const active = platform === item;
@@ -208,7 +208,7 @@ export default function CreateAccountScreen() {
               })}
             </View>
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>账号类型</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Account type</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
               {(['apikey', 'oauth'] as const).map((item) => {
                 const active = accountType === item;
@@ -232,11 +232,11 @@ export default function CreateAccountScreen() {
               })}
             </View>
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>备注（可选）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Notes (optional)</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="例如：主线路账号"
+              placeholder="e.g. Main route account"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -251,7 +251,7 @@ export default function CreateAccountScreen() {
             />
           </Section>
 
-          <Section title="凭证信息">
+          <Section title="Credentials">
             {accountType === 'apikey' ? (
               <>
                 <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Base URL</Text>
@@ -313,7 +313,7 @@ export default function CreateAccountScreen() {
                   }}
                 />
 
-                <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Refresh Token（可选）</Text>
+                <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Refresh Token (optional)</Text>
                 <TextInput
                   value={refreshToken}
                   onChangeText={setRefreshToken}
@@ -332,7 +332,7 @@ export default function CreateAccountScreen() {
                   }}
                 />
 
-                <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Client ID（可选）</Text>
+                <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Client ID (optional)</Text>
                 <TextInput
                   value={clientId}
                   onChangeText={setClientId}
@@ -353,11 +353,11 @@ export default function CreateAccountScreen() {
               </>
             )}
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>额外凭证 JSON（可选）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Extra credentials JSON (optional)</Text>
             <TextInput
               value={extraCredentialsJson}
               onChangeText={setExtraCredentialsJson}
-              placeholder='例如：{"project_id":"abc","tier_id":2}'
+              placeholder='e.g. {"project_id":"abc","tier_id":2}'
               placeholderTextColor="#9a9082"
               multiline
               style={{
@@ -374,13 +374,13 @@ export default function CreateAccountScreen() {
             />
           </Section>
 
-          <Section title="高级参数（可选）">
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>并发 concurrency</Text>
+          <Section title="Advanced parameters (optional)">
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Concurrency</Text>
             <TextInput
               value={concurrency}
               onChangeText={setConcurrency}
               keyboardType="number-pad"
-              placeholder="例如：10"
+              placeholder="e.g. 10"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -394,12 +394,12 @@ export default function CreateAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>优先级 priority</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Priority</Text>
             <TextInput
               value={priority}
               onChangeText={setPriority}
               keyboardType="number-pad"
-              placeholder="例如：0"
+              placeholder="e.g. 0"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -413,12 +413,12 @@ export default function CreateAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>倍率 rate_multiplier</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Rate multiplier</Text>
             <TextInput
               value={rateMultiplier}
               onChangeText={setRateMultiplier}
               keyboardType="decimal-pad"
-              placeholder="例如：1"
+              placeholder="e.g. 1"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -432,12 +432,12 @@ export default function CreateAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>代理 ID proxy_id</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Proxy ID</Text>
             <TextInput
               value={proxyId}
               onChangeText={setProxyId}
               keyboardType="number-pad"
-              placeholder="例如：3"
+              placeholder="e.g. 3"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -451,11 +451,11 @@ export default function CreateAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>分组 IDs（逗号分隔）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Group IDs (comma-separated)</Text>
             <TextInput
               value={groupIds}
               onChangeText={setGroupIds}
-              placeholder="例如：1,2,5"
+              placeholder="e.g. 1,2,5"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -488,7 +488,7 @@ export default function CreateAccountScreen() {
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>{createMutation.isPending ? '提交中...' : '创建账号'}</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>{createMutation.isPending ? 'Submitting...' : 'Create account'}</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>

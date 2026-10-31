@@ -14,12 +14,12 @@ const { useSnapshot } = require('valtio/react');
 
 const schema = z
   .object({
-    baseUrl: z.string().min(1, '请输入服务器地址'),
+    baseUrl: z.string().min(1, 'Enter the server URL'),
     adminApiKey: z.string(),
   })
   .refine((values) => values.adminApiKey.trim().length > 0, {
     path: ['adminApiKey'],
-    message: '请输入 Admin Key',
+    message: 'Enter the Admin Key',
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -41,17 +41,17 @@ function getConnectionErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先填写服务器地址。';
+        return 'Enter the server URL first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先填写 Admin Key。';
+        return 'Enter the Admin Key first.';
       case 'INVALID_SERVER_RESPONSE':
-        return '当前地址返回的数据不正确，请确认它是可用的管理接口。';
+        return 'This URL returned unexpected data. Check that it is a working admin API.';
       default:
         return error.message;
     }
   }
 
-  return '连接失败，请检查服务器地址、Admin Key 和网络连通性。';
+  return 'Connection failed. Check the server URL, Admin Key and network connection.';
 }
 
 export default function LoginScreen() {
@@ -77,15 +77,15 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingVertical: 24 }} keyboardShouldPersistTaps="handled">
         <View style={{ flex: 1, justifyContent: 'center', gap: 20 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text }}>管理员入口</Text>
+            <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text }}>Admin sign-in</Text>
             <Text style={{ fontSize: 14, lineHeight: 22, color: colors.subtext }}>
-              首次进入请填写服务器地址和 Admin Key。连接成功后即可进入应用，并在“服务器”页管理多个服务器。
+              On first launch, enter the server URL and Admin Key. Once connected you can use the app and manage multiple servers on the Servers page.
             </Text>
           </View>
 
           <View style={{ backgroundColor: colors.card, borderRadius: 22, padding: 18, gap: 16 }}>
             <View>
-              <Text style={{ marginBottom: 8, fontSize: 12, color: colors.subtext }}>服务器地址</Text>
+              <Text style={{ marginBottom: 8, fontSize: 12, color: colors.subtext }}>Server URL</Text>
               <Controller
                 control={control}
                 name="baseUrl"
@@ -99,7 +99,7 @@ export default function LoginScreen() {
                       }
                       onChange(text);
                     }}
-                    placeholder="例如：https://api.example.com"
+                    placeholder="e.g. https://api.example.com"
                     placeholderTextColor="#9b9081"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -144,7 +144,7 @@ export default function LoginScreen() {
                       onPress={() => setShowAdminKey((value) => !value)}
                       style={{ backgroundColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4e463e' }}>{showAdminKey ? '隐藏' : '显示'}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4e463e' }}>{showAdminKey ? 'Hide' : 'Show'}</Text>
                     </Pressable>
                   </View>
                 )}
@@ -168,7 +168,7 @@ export default function LoginScreen() {
               disabled={connectionState === 'checking'}
               onPress={handleSubmit(async (values) => {
                 setConnectionState('checking');
-                setConnectionMessage('正在验证服务器连接...');
+                setConnectionMessage('Verifying the server connection...');
 
                 try {
                   await saveAdminConfig(values);
@@ -182,7 +182,7 @@ export default function LoginScreen() {
                 }
               })}
             >
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{connectionState === 'checking' ? '连接中...' : '进入应用'}</Text>
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{connectionState === 'checking' ? 'Connecting...' : 'Enter app'}</Text>
             </Pressable>
           </View>
         </View>

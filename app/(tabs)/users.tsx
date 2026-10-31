@@ -56,9 +56,9 @@ function formatCost(value?: number) {
 }
 
 function formatActivityTime(value?: string) {
-  if (!value) return '时间未知';
+  if (!value) return 'Unknown time';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '时间未知';
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -83,22 +83,22 @@ function getTimeValue(user: AdminUser) {
 function getUserNameLabel(user: AdminUser) {
   if (user.username?.trim()) return user.username.trim();
   if (user.notes?.trim()) return user.notes.trim();
-  return user.email.split('@')[0] || '未命名';
+  return user.email.split('@')[0] || 'Unnamed';
 }
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先到服务器页填写服务地址。';
+        return 'Set the server URL on the Servers page first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先到服务器页填写 Admin Token。';
+        return 'Set the Admin Token on the Servers page first.';
       default:
         return error.message;
     }
   }
 
-  return '当前无法加载页面数据，请检查服务地址、Token 和网络。';
+  return 'Unable to load this page. Check the server URL, token and network.';
 }
 
 function MetricTile({ title, value, tone = 'default' }: { title: string; value: string; tone?: 'default' | 'accent' }) {
@@ -128,7 +128,7 @@ function UserCard({ user, usage }: { user: AdminUser; usage?: UsageStats }) {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <View style={{ flex: 1 }}>
           <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>{user.email}</Text>
-          <Text style={{ marginTop: 4, fontSize: 12, color: colors.subtext }}>最近使用 {formatActivityTime(user.last_used_at || user.updated_at || user.created_at)}</Text>
+          <Text style={{ marginTop: 4, fontSize: 12, color: colors.subtext }}>Last used {formatActivityTime(user.last_used_at || user.updated_at || user.created_at)}</Text>
         </View>
         <View style={{ alignSelf: 'flex-start', backgroundColor: user.status === 'inactive' || user.status === 'disabled' ? '#cfc5b7' : colors.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
           <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>{statusLabel}</Text>
@@ -136,9 +136,9 @@ function UserCard({ user, usage }: { user: AdminUser; usage?: UsageStats }) {
       </View>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        <MetricTile title="消费" value={formatCost(totalCost)} tone="accent" />
-        <MetricTile title="总 Token" value={formatTokenValue(totalTokens)} />
-        <MetricTile title="总请求" value={formatCompactNumber(totalRequests)} />
+        <MetricTile title="Spend" value={formatCost(totalCost)} tone="accent" />
+        <MetricTile title="Total tokens" value={formatTokenValue(totalTokens)} />
+        <MetricTile title="Total requests" value={formatCompactNumber(totalRequests)} />
       </View>
     </View>
   );
@@ -189,8 +189,8 @@ export default function UsersScreen() {
       <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 14 }}>
         <View style={{ marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>用户</Text>
-            <Text style={{ marginTop: 4, fontSize: 12, color: '#8a8072' }}>查看用户列表并进入详情页管理账号。</Text>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>Users</Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: '#8a8072' }}>Browse users and open a user to manage their account.</Text>
           </View>
           <Pressable
             onPress={() => router.push('/users/create-user')}
@@ -212,7 +212,7 @@ export default function UsersScreen() {
             <TextInput
               value={searchText}
               onChangeText={setSearchText}
-              placeholder="搜索邮箱、用户名或备注"
+              placeholder="Search email, username or notes"
               placeholderTextColor="#9b9081"
               style={{ backgroundColor: colors.mutedCard, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: colors.text }}
             />
@@ -221,30 +221,30 @@ export default function UsersScreen() {
             onPress={() => setSortOrder((value) => (value === 'desc' ? 'asc' : 'desc'))}
             style={{ backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14, minWidth: 92, alignItems: 'center' }}
           >
-            <Text style={{ fontSize: 11, color: colors.subtext }}>时间</Text>
-            <Text style={{ marginTop: 4, fontSize: 13, fontWeight: '700', color: colors.text }}>{sortOrder === 'desc' ? '倒序' : '正序'}</Text>
+            <Text style={{ fontSize: 11, color: colors.subtext }}>Time</Text>
+            <Text style={{ marginTop: 4, fontSize: 13, fontWeight: '700', color: colors.text }}>{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</Text>
           </Pressable>
         </View>
 
         {!hasAccount ? (
           <View style={{ marginTop: 10, backgroundColor: colors.card, borderRadius: 18, padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>未连接服务器</Text>
-            <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: colors.subtext }}>请先到“服务器”页完成连接，再查看用户列表。</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>No server connected</Text>
+            <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: colors.subtext }}>Connect on the Servers page first, then come back to see users.</Text>
             <Pressable
               style={{ marginTop: 14, alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 }}
               onPress={() => router.push('/settings')}
             >
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>去配置服务器</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Set up server</Text>
             </Pressable>
           </View>
         ) : usersQuery.isLoading ? (
           <View style={{ marginTop: 10, backgroundColor: colors.card, borderRadius: 18, padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>正在加载用户</Text>
-            <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: colors.subtext }}>已连接服务器，正在拉取用户列表。</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Loading users</Text>
+            <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: colors.subtext }}>Connected. Fetching the user list.</Text>
           </View>
         ) : usersQuery.error ? (
           <View style={{ marginTop: 10, backgroundColor: colors.card, borderRadius: 18, padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>加载失败</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Failed to load</Text>
             <View style={{ marginTop: 12, borderRadius: 14, backgroundColor: colors.dangerBg, paddingHorizontal: 14, paddingVertical: 12 }}>
               <Text style={{ color: colors.danger, fontSize: 14, lineHeight: 20 }}>{errorMessage}</Text>
             </View>
@@ -259,8 +259,8 @@ export default function UsersScreen() {
             contentContainerStyle={{ paddingBottom: 8, gap: 12, flexGrow: users.length === 0 ? 1 : 0 }}
             ListEmptyComponent={
               <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>暂无用户</Text>
-                <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: colors.subtext }}>当前搜索条件下没有匹配结果，可以修改关键词后重试。</Text>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>No users</Text>
+                <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: colors.subtext }}>No results match your search. Try different keywords.</Text>
               </View>
             }
             renderItem={({ item }) => (

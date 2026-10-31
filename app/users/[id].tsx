@@ -55,15 +55,15 @@ function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先到服务器页填写服务地址。';
+        return 'Set the server URL on the Servers page first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先到服务器页填写 Admin Token。';
+        return 'Set the Admin Token on the Servers page first.';
       default:
         return error.message;
     }
   }
 
-  return '加载失败，请稍后重试。';
+  return 'Failed to load. Please try again later.';
 }
 
 function formatMoney(value?: number | null) {
@@ -190,7 +190,7 @@ function CopyInlineButton({ copied, onPress }: { copied: boolean; onPress: () =>
         paddingVertical: 6,
       }}
     >
-      <Text style={{ fontSize: 11, fontWeight: '700', color: copied ? '#17663f' : '#4e463e' }}>{copied ? '已复制' : '复制'}</Text>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: copied ? '#17663f' : '#4e463e' }}>{copied ? 'Copied' : 'Copy'}</Text>
     </Pressable>
   );
 }
@@ -213,7 +213,7 @@ function KeyItem({ item, copied, onCopy }: { item: AdminApiKey; copied: boolean;
             <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{item.name || `Key #${item.id}`}</Text>
             <CopyInlineButton copied={copied} onPress={onCopy} />
           </View>
-          <Text style={{ marginTop: 4, fontSize: 12, color: colors.subtext }}>{item.group?.name || '未分组'}</Text>
+          <Text style={{ marginTop: 4, fontSize: 12, color: colors.subtext }}>{item.group?.name || 'No group'}</Text>
         </View>
         <StatusBadge text={item.status || '--'} />
       </View>
@@ -222,11 +222,11 @@ function KeyItem({ item, copied, onCopy }: { item: AdminApiKey; copied: boolean;
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: colors.subtext }}>已用额度</Text>
+          <Text style={{ fontSize: 11, color: colors.subtext }}>Quota used</Text>
           <Text style={{ marginTop: 4, fontSize: 16, fontWeight: '700', color: colors.text }}>{formatQuotaUsage(item.quota_used, item.quota)}</Text>
         </View>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 11, color: colors.subtext }}>最后使用时间</Text>
+          <Text style={{ fontSize: 11, color: colors.subtext }}>Last used</Text>
           <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{formatTime(item.last_used_at || item.updated_at || item.created_at)}</Text>
         </View>
       </View>
@@ -331,12 +331,12 @@ export default function UserDetailScreen() {
     const numericAmount = Number(amount);
 
     if (!amount.trim()) {
-      setFormError('请输入金额。');
+      setFormError('Enter an amount.');
       return;
     }
 
     if (!Number.isFinite(numericAmount) || numericAmount < 0) {
-      setFormError('金额格式不正确。');
+      setFormError('Invalid amount format.');
       return;
     }
 
@@ -358,12 +358,12 @@ export default function UserDetailScreen() {
   function handleToggleUserStatus() {
     if (!user) return;
     const nextStatus: 'active' | 'disabled' = user.status === 'disabled' ? 'active' : 'disabled';
-    const actionLabel = nextStatus === 'disabled' ? '禁用' : '启用';
+    const actionLabel = nextStatus === 'disabled' ? 'Disable' : 'Enable';
 
-    Alert.alert(`${actionLabel}用户`, `确认要${actionLabel}该用户吗？`, [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(`${actionLabel} user`, `Are you sure you want to ${actionLabel.toLowerCase()} this user?`, [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: '确认',
+        text: 'Confirm',
         style: nextStatus === 'disabled' ? 'destructive' : 'default',
         onPress: () => {
           setStatusError(null);
@@ -375,26 +375,26 @@ export default function UserDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: user?.email || '用户详情' }} />
+      <Stack.Screen options={{ title: user?.email || 'User details' }} />
       <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.page }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
           {userQuery.isLoading ? (
-            <Section title="状态">
-              <Text style={{ color: colors.subtext }}>正在加载用户详情...</Text>
+            <Section title="Status">
+              <Text style={{ color: colors.subtext }}>Loading user details...</Text>
             </Section>
           ) : null}
 
           {userQuery.error ? (
-            <Section title="状态">
+            <Section title="Status">
               <View style={{ backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
-                <Text style={{ color: colors.errorText, fontWeight: '700' }}>用户信息加载失败</Text>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>Failed to load user</Text>
                 <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(userQuery.error)}</Text>
               </View>
             </Section>
           ) : null}
 
           {user ? (
-            <Section title="基础信息">
+            <Section title="Basic info">
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
                 <View
                   style={{
@@ -404,11 +404,11 @@ export default function UserDetailScreen() {
                     paddingVertical: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 11, color: colors.subtext }}>邮箱</Text>
+                  <Text style={{ fontSize: 11, color: colors.subtext }}>Email</Text>
                   <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{user.email || '--'}</Text>
                 </View>
-                <GridField label="用户名" value={user.username || '--'} />
-                <GridField label="余额" value={formatMoney(user.balance)} />
+                <GridField label="Username" value={user.username || '--'} />
+                <GridField label="Balance" value={formatMoney(user.balance)} />
                 <View
                   style={{
                     width: '48.5%',
@@ -417,14 +417,14 @@ export default function UserDetailScreen() {
                     paddingVertical: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 11, color: colors.subtext }}>最后使用时间</Text>
+                  <Text style={{ fontSize: 11, color: colors.subtext }}>Last used</Text>
                   <Text style={{ marginTop: 4, fontSize: 13, color: colors.subtext }}>{formatTime(user.last_used_at || user.updated_at || user.created_at)}</Text>
                 </View>
               </View>
 
               <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 12, color: colors.subtext }}>用户状态</Text>
+                  <Text style={{ fontSize: 12, color: colors.subtext }}>User status</Text>
                   <StatusBadge text={user.status || 'active'} />
                 </View>
                 <Pressable
@@ -439,12 +439,12 @@ export default function UserDetailScreen() {
                   }}
                 >
                   <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
-                    {statusMutation.isPending ? '处理中...' : user.status === 'disabled' ? '启用用户' : '禁用用户'}
+                    {statusMutation.isPending ? 'Processing...' : user.status === 'disabled' ? 'Enable user' : 'Disable user'}
                   </Text>
                 </Pressable>
               </View>
 
-              {user.role?.toLowerCase() === 'admin' ? <Text style={{ marginTop: 8, fontSize: 12, color: colors.subtext }}>管理员用户不支持禁用。</Text> : null}
+              {user.role?.toLowerCase() === 'admin' ? <Text style={{ marginTop: 8, fontSize: 12, color: colors.subtext }}>Admin users cannot be disabled.</Text> : null}
 
               {statusError ? (
                 <View style={{ marginTop: 10, backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
@@ -454,7 +454,7 @@ export default function UserDetailScreen() {
             </Section>
           ) : null}
 
-          <Section title="总用量">
+          <Section title="Total usage">
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               {RANGE_OPTIONS.map((item) => {
                 const active = item.key === rangeKey;
@@ -478,22 +478,22 @@ export default function UserDetailScreen() {
             </View>
 
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <MetricCard label="请求" value={formatTokenValue(usageStatsQuery.data?.total_requests)} />
+              <MetricCard label="Requests" value={formatTokenValue(usageStatsQuery.data?.total_requests)} />
               <MetricCard label="Token" value={formatTokenValue(usageStatsQuery.data?.total_tokens)} />
-              <MetricCard label="成本" value={formatUsageCost(usageStatsQuery.data)} />
+              <MetricCard label="Cost" value={formatUsageCost(usageStatsQuery.data)} />
             </View>
 
             {usageStatsQuery.data ? (
               <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>
-                输入 {formatTokenValue(usageStatsQuery.data.total_input_tokens)} · 输出 {formatTokenValue(usageStatsQuery.data.total_output_tokens)}
+                Input {formatTokenValue(usageStatsQuery.data.total_input_tokens)} · Output {formatTokenValue(usageStatsQuery.data.total_output_tokens)}
               </Text>
             ) : null}
 
-            {usageStatsQuery.isLoading ? <Text style={{ marginTop: 12, color: colors.subtext }}>正在加载用量统计...</Text> : null}
+            {usageStatsQuery.isLoading ? <Text style={{ marginTop: 12, color: colors.subtext }}>Loading usage stats...</Text> : null}
 
             {usageStatsQuery.error ? (
               <View style={{ marginTop: 12, backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
-                <Text style={{ color: colors.errorText, fontWeight: '700' }}>用量统计加载失败</Text>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>Failed to load usage stats</Text>
                 <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(usageStatsQuery.error)}</Text>
               </View>
             ) : null}
@@ -501,8 +501,8 @@ export default function UserDetailScreen() {
             {!usageSnapshotQuery.isLoading && trendPoints.length > 1 ? (
               <View style={{ marginTop: 14 }}>
                 <LineTrendChart
-                  title="用量趋势"
-                  subtitle={`${range.start_date} 到 ${range.end_date}`}
+                  title="Usage trend"
+                  subtitle={`${range.start_date} to ${range.end_date}`}
                   points={trendPoints}
                   color="#1d5f55"
                   formatValue={(value) => formatTokenValue(value)}
@@ -511,11 +511,11 @@ export default function UserDetailScreen() {
               </View>
             ) : null}
 
-            {usageSnapshotQuery.isLoading ? <Text style={{ marginTop: 12, color: colors.subtext }}>正在加载趋势图...</Text> : null}
+            {usageSnapshotQuery.isLoading ? <Text style={{ marginTop: 12, color: colors.subtext }}>Loading trend chart...</Text> : null}
 
             {usageSnapshotQuery.error ? (
               <View style={{ marginTop: 12, backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
-                <Text style={{ color: colors.errorText, fontWeight: '700' }}>趋势加载失败</Text>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>Failed to load trend</Text>
                 <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(usageSnapshotQuery.error)}</Text>
               </View>
             ) : null}
@@ -525,7 +525,7 @@ export default function UserDetailScreen() {
             <TextInput
               value={searchText}
               onChangeText={setSearchText}
-              placeholder="搜索名称 / Key / 分组"
+              placeholder="Search name / key / group"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -539,11 +539,11 @@ export default function UserDetailScreen() {
               }}
             />
 
-            {apiKeysQuery.isLoading ? <Text style={{ color: colors.subtext }}>正在加载 API Keys...</Text> : null}
+            {apiKeysQuery.isLoading ? <Text style={{ color: colors.subtext }}>Loading API keys...</Text> : null}
 
             {apiKeysQuery.error ? (
               <View style={{ backgroundColor: colors.errorBg, borderRadius: 12, padding: 12 }}>
-                <Text style={{ color: colors.errorText, fontWeight: '700' }}>API Keys 加载失败</Text>
+                <Text style={{ color: colors.errorText, fontWeight: '700' }}>Failed to load API keys</Text>
                 <Text style={{ marginTop: 6, color: colors.errorText }}>{getErrorMessage(apiKeysQuery.error)}</Text>
               </View>
             ) : null}
@@ -556,17 +556,17 @@ export default function UserDetailScreen() {
                   ))}
                 </View>
               ) : (
-                <Text style={{ color: colors.subtext }}>当前筛选条件下没有 Key。</Text>
+                <Text style={{ color: colors.subtext }}>No keys match the current filter.</Text>
               )
             ) : null}
           </Section>
 
-          <Section title="余额操作">
+          <Section title="Balance actions">
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               {([
-                { label: '充值', value: 'add' },
-                { label: '扣减', value: 'subtract' },
-                { label: '设为', value: 'set' },
+                { label: 'Top up', value: 'add' },
+                { label: 'Deduct', value: 'subtract' },
+                { label: 'Set to', value: 'set' },
               ] as const).map((item) => {
                 const active = operation === item.value;
                 return (
@@ -592,7 +592,7 @@ export default function UserDetailScreen() {
             <TextInput
               value={amount}
               onChangeText={setAmount}
-              placeholder="输入金额，例如 10"
+              placeholder="Enter an amount, e.g. 10"
               placeholderTextColor="#9a9082"
               keyboardType="decimal-pad"
               style={{
@@ -610,7 +610,7 @@ export default function UserDetailScreen() {
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="备注（可选）"
+              placeholder="Notes (optional)"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -631,7 +631,7 @@ export default function UserDetailScreen() {
             ) : null}
 
             <Pressable onPress={submitBalance} style={{ backgroundColor: colors.dark, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>{balanceMutation.isPending ? '提交中...' : '确认提交'}</Text>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>{balanceMutation.isPending ? 'Submitting...' : 'Submit'}</Text>
             </Pressable>
           </Section>
         </ScrollView>

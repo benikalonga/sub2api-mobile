@@ -14,12 +14,12 @@ const { useSnapshot } = require('valtio/react');
 
 const schema = z
   .object({
-    baseUrl: z.string().min(1, '请输入服务器地址'),
+    baseUrl: z.string().min(1, 'Enter the server URL'),
     adminApiKey: z.string(),
   })
   .refine((values) => values.adminApiKey.trim().length > 0, {
     path: ['adminApiKey'],
-    message: '请输入 Admin Key',
+    message: 'Enter the Admin Key',
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -43,17 +43,17 @@ function getConnectionErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先填写服务器地址。';
+        return 'Enter the server URL first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先填写 Admin Key。';
+        return 'Enter the Admin Key first.';
       case 'INVALID_SERVER_RESPONSE':
-        return '当前地址返回的数据不正确，请确认它是可用的管理接口。';
+        return 'This URL returned unexpected data. Check that it is a working admin API.';
       default:
         return error.message;
     }
   }
 
-  return '连接失败，请检查服务器地址、Admin Key 和网络连通性。';
+  return 'Connection failed. Check the server URL, Admin Key and network connection.';
 }
 
 function ServerCard({
@@ -82,21 +82,21 @@ function ServerCard({
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{account.label}</Text>
           <Text style={{ marginTop: 6, fontSize: 13, lineHeight: 20, color: colors.subtext }}>{account.baseUrl}</Text>
-          <Text style={{ marginTop: 8, fontSize: 11, color: '#8a8072' }}>更新时间 {new Date(account.updatedAt).toLocaleString()}</Text>
+          <Text style={{ marginTop: 8, fontSize: 11, color: '#8a8072' }}>Updated {new Date(account.updatedAt).toLocaleString()}</Text>
         </View>
         {active ? (
           <View style={{ backgroundColor: colors.success, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
-            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>当前使用</Text>
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>In use</Text>
           </View>
         ) : null}
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
         <Pressable onPress={onSelect} style={{ flex: 1, backgroundColor: active ? '#d7eee4' : colors.primary, borderRadius: 14, paddingVertical: 11, alignItems: 'center' }}>
-          <Text style={{ color: active ? colors.success : '#fff', fontSize: 13, fontWeight: '700' }}>{active ? '已选中' : '切换到此服务器'}</Text>
+          <Text style={{ color: active ? colors.success : '#fff', fontSize: 13, fontWeight: '700' }}>{active ? 'Selected' : 'Switch to this server'}</Text>
         </Pressable>
         <Pressable onPress={onDelete} style={{ backgroundColor: colors.border, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center' }}>
-          <Text style={{ color: '#7a3d31', fontSize: 13, fontWeight: '700' }}>删除</Text>
+          <Text style={{ color: '#7a3d31', fontSize: 13, fontWeight: '700' }}>Delete</Text>
         </Pressable>
       </View>
     </Pressable>
@@ -120,7 +120,7 @@ export default function SettingsScreen() {
 
   async function verifyAndEnter(successMessage: string) {
     setConnectionState('checking');
-    setConnectionMessage('正在检测当前服务是否可用...');
+    setConnectionMessage('Checking whether the service is available...');
 
     try {
       queryClient.clear();
@@ -139,12 +139,12 @@ export default function SettingsScreen() {
     await saveAdminConfig(values);
     reset({ baseUrl: '', adminApiKey: '' });
     setShowForm(false);
-    await verifyAndEnter('服务器已添加并切换成功。');
+    await verifyAndEnter('Server added and selected.');
   }
 
   async function handleSelect(account: AdminAccountProfile) {
     await switchAdminAccount(account.id);
-    await verifyAndEnter(`已切换到 ${account.label}。`);
+    await verifyAndEnter(`Switched to ${account.label}.`);
   }
 
   async function handleDelete(account: AdminAccountProfile) {
@@ -184,8 +184,8 @@ export default function SettingsScreen() {
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>服务器</Text>
-            <Text style={{ marginTop: 6, fontSize: 13, color: '#8a8072' }}>选择当前管理的服务器，或添加新的服务器。</Text>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>Servers</Text>
+            <Text style={{ marginTop: 6, fontSize: 13, color: '#8a8072' }}>Choose the server to manage, or add a new one.</Text>
           </View>
           <Pressable
             onPress={() => {
@@ -201,10 +201,10 @@ export default function SettingsScreen() {
 
         {showForm ? (
           <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 16, gap: 14 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>添加服务器</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Add server</Text>
 
             <View>
-              <Text style={{ marginBottom: 8, fontSize: 12, color: colors.subtext }}>服务器地址</Text>
+              <Text style={{ marginBottom: 8, fontSize: 12, color: colors.subtext }}>Server URL</Text>
               <Controller
                 control={control}
                 name="baseUrl"
@@ -212,7 +212,7 @@ export default function SettingsScreen() {
                   <TextInput
                     value={value}
                     onChangeText={onChange}
-                    placeholder="例如：https://api.example.com"
+                    placeholder="e.g. https://api.example.com"
                     placeholderTextColor="#9b9081"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -251,7 +251,7 @@ export default function SettingsScreen() {
                       onPress={() => setShowAdminKey((value) => !value)}
                       style={{ backgroundColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4e463e' }}>{showAdminKey ? '隐藏' : '显示'}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#4e463e' }}>{showAdminKey ? 'Hide' : 'Show'}</Text>
                     </Pressable>
                   </View>
                 )}
@@ -276,7 +276,7 @@ export default function SettingsScreen() {
                 disabled={connectionState === 'checking'}
                 style={{ flex: 1, backgroundColor: connectionState === 'checking' ? '#7ca89f' : colors.primary, borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}
               >
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{connectionState === 'checking' ? '检测中...' : '保存并使用'}</Text>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{connectionState === 'checking' ? 'Checking...' : 'Save and use'}</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -287,7 +287,7 @@ export default function SettingsScreen() {
                 }}
                 style={{ flex: 1, backgroundColor: colors.border, borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}
               >
-                <Text style={{ color: '#4e463e', fontSize: 14, fontWeight: '700' }}>取消</Text>
+                <Text style={{ color: '#4e463e', fontSize: 14, fontWeight: '700' }}>Cancel</Text>
               </Pressable>
             </View>
           </View>
@@ -306,8 +306,8 @@ export default function SettingsScreen() {
 
           {config.accounts.length === 0 ? (
             <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 18 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>还没有服务器</Text>
-              <Text style={{ marginTop: 8, fontSize: 13, lineHeight: 21, color: colors.subtext }}>点击右上角 + 添加服务器，保存成功后会自动切换并进入概览。</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>No servers yet</Text>
+              <Text style={{ marginTop: 8, fontSize: 13, lineHeight: 21, color: colors.subtext }}>Tap + in the top right to add a server. Once saved, it is selected and the overview opens.</Text>
             </View>
           ) : null}
         </View>

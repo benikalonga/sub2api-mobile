@@ -27,7 +27,7 @@ export default function GroupsScreen() {
           <TextInput
             defaultValue=""
             onChangeText={setSearchText}
-            placeholder="搜索分组名称"
+            placeholder="Search group name"
             placeholderTextColor="#9b9081"
             className="ml-3 flex-1 text-base text-[#16181a]"
           />
@@ -40,14 +40,14 @@ export default function GroupsScreen() {
     ({ item: group }: { item: (typeof items)[number] }) => (
       <ListCard
         title={group.name}
-        meta={`${group.platform} · 倍率 ${group.rate_multiplier ?? 1} · ${group.subscription_type || 'standard'}`}
+        meta={`${group.platform} · Rate ${group.rate_multiplier ?? 1} · ${group.subscription_type || 'standard'}`}
         badge={group.status || 'active'}
         icon={FolderKanban}
       >
         <View className="flex-row items-center gap-2">
           <Layers3 color="#7d7468" size={14} />
           <Text className="text-sm text-[#7d7468]">
-            账号数 {group.account_count ?? 0} · {group.is_exclusive ? '独占分组' : '共享分组'}
+            Accounts {group.account_count ?? 0} · {group.is_exclusive ? 'Exclusive group' : 'Shared group'}
           </Text>
         </View>
       </ListCard>
@@ -55,15 +55,15 @@ export default function GroupsScreen() {
     []
   );
   const emptyState = useMemo(
-    () => <ListCard title="暂无分组" meta={errorMessage || '连上 Sub2API 后，这里会展示分组列表。'} icon={FolderKanban} />,
+    () => <ListCard title="No groups" meta={errorMessage || 'Once connected to Sub2API, groups will appear here.'} icon={FolderKanban} />,
     [errorMessage]
   );
 
   return (
     <ScreenShell
-      title="分组管理"
+      title="Groups"
       subtitle=""
-      titleAside={<Text className="text-[11px] text-[#a2988a]">查看分组与调度归属。</Text>}
+      titleAside={<Text className="text-[11px] text-[#a2988a]">View groups and scheduling ownership.</Text>}
       variant="minimal"
       scroll={false}
     >

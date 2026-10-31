@@ -8,10 +8,6 @@
 
 Mobile-first admin console for Sub2API operations, built with Expo + React Native + Expo Router.
 
-## Mobile Preview
-
-<img src="docs/mobile.jpg" alt="Mobile Preview" width="420" />
-
 ## Highlights
 
 - Cross-platform app (iOS / Android / Web) for operational and admin workflows.

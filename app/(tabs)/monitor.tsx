@@ -128,17 +128,17 @@ function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先去服务器页填写服务地址。';
+        return 'Set the server URL on the Servers page first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先去服务器页填写 Admin Token。';
+        return 'Set the Admin Token on the Servers page first.';
       case 'INVALID_SERVER_RESPONSE':
-        return '当前服务返回的数据格式不正确，请确认它是可用的 Sub2API 管理接口。';
+        return 'The service returned data in an unexpected format. Check that it is a working Sub2API admin API.';
       default:
         return error.message;
     }
   }
 
-  return '当前无法加载概览数据，请检查服务地址、Token 和网络。';
+  return 'Unable to load overview data. Check the server URL, token and network.';
 }
 
 function Section({ title, subtitle, children, right }: { title: string; subtitle?: string; children: React.ReactNode; right?: React.ReactNode }) {
@@ -214,7 +214,7 @@ export default function MonitorScreen() {
   }
 
   const stats = statsQuery.data;
-  const siteName = settingsQuery.data?.site_name?.trim() || '管理控制台';
+  const siteName = settingsQuery.data?.site_name?.trim() || 'Admin Console';
   const accounts = accountsQuery.data?.items ?? [];
   const trend = trendQuery.data?.trend ?? [];
   const topModels = (modelsQuery.data?.models ?? []).slice(0, 5);
@@ -264,8 +264,8 @@ export default function MonitorScreen() {
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>概览</Text>
-            <Text style={{ marginTop: 6, fontSize: 13, color: '#8a8072' }}>{siteName} 的当前运行状态。</Text>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>Overview</Text>
+            <Text style={{ marginTop: 6, fontSize: 13, color: '#8a8072' }}>Current status of {siteName}.</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -282,32 +282,32 @@ export default function MonitorScreen() {
                 );
               })}
             </View>
-            <Text style={{ marginTop: 8, fontSize: 12, color: colors.subtext }}>{range.start_date} 到 {range.end_date}</Text>
+            <Text style={{ marginTop: 8, fontSize: 12, color: colors.subtext }}>{range.start_date} to {range.end_date}</Text>
           </View>
         </View>
 
         {!hasAccount ? (
-          <Section title="未连接服务器" subtitle="需要先配置连接">
-            <Text style={{ fontSize: 14, lineHeight: 22, color: colors.subtext }}>请先前往“服务器”页填写服务地址和 Admin Token，再返回查看概览数据。</Text>
+          <Section title="No server connected" subtitle="Set up a connection first">
+            <Text style={{ fontSize: 14, lineHeight: 22, color: colors.subtext }}>Go to the Servers page, enter the server URL and Admin Token, then come back to see the overview.</Text>
             <Pressable style={{ marginTop: 14, alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 }} onPress={() => router.push('/settings')}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>去配置服务器</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Set up server</Text>
             </Pressable>
           </Section>
         ) : isLoading ? (
-          <Section title="正在加载概览" subtitle="请稍候">
-            <Text style={{ fontSize: 14, lineHeight: 22, color: colors.subtext }}>已连接服务器，正在拉取概览、模型和账号状态数据。</Text>
+          <Section title="Loading overview" subtitle="Please wait">
+            <Text style={{ fontSize: 14, lineHeight: 22, color: colors.subtext }}>Connected. Fetching overview, model and account status data.</Text>
           </Section>
         ) : hasError ? (
-          <Section title="加载失败" subtitle="请检查连接配置">
+          <Section title="Failed to load" subtitle="Check the connection settings">
             <View style={{ borderRadius: 14, backgroundColor: colors.dangerBg, paddingHorizontal: 14, paddingVertical: 12 }}>
               <Text style={{ color: colors.danger, fontSize: 14, lineHeight: 20 }}>{errorMessage}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 14 }}>
               <Pressable style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 12, alignItems: 'center' }} onPress={refetchAll}>
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>重试</Text>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Retry</Text>
               </Pressable>
               <Pressable style={{ flex: 1, backgroundColor: colors.border, borderRadius: 14, paddingVertical: 12, alignItems: 'center' }} onPress={() => router.push('/settings')}>
-                <Text style={{ color: '#4e463e', fontSize: 13, fontWeight: '700' }}>检查服务器</Text>
+                <Text style={{ color: '#4e463e', fontSize: 13, fontWeight: '700' }}>Check server</Text>
               </Pressable>
             </View>
           </Section>
@@ -317,100 +317,100 @@ export default function MonitorScreen() {
               <StatCard
                 title={`${rangeTitle} Token`}
                 value={formatTokenDisplay(rangeKey === '24h' ? selectedTokenTotal || stats?.today_tokens : selectedTokenTotal)}
-                detail={`输出 ${formatTokenDisplay(rangeKey === '24h' ? selectedOutputTotal || stats?.today_output_tokens : selectedOutputTotal)}`}
+                detail={`Output ${formatTokenDisplay(rangeKey === '24h' ? selectedOutputTotal || stats?.today_output_tokens : selectedOutputTotal)}`}
               />
               <StatCard
-                title={`${rangeTitle} 成本`}
+                title={`${rangeTitle} cost`}
                 value={formatMoney(rangeKey === '24h' ? selectedCostTotal || stats?.today_cost : selectedCostTotal)}
                 detail={`TPM ${formatNumber(stats?.tpm)}`}
               />
             </View>
             <Section
-              title="账号概览"
-              subtitle="总数、健康、异常和限流状态一览"
+              title="Accounts overview"
+              subtitle="Total, healthy, error and rate-limited at a glance"
               right={(
                 <Pressable
                   style={{ alignSelf: 'flex-start', backgroundColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}
                   onPress={() => router.push('/accounts/overview')}
                 >
-                  <Text style={{ color: '#4e463e', fontSize: 12, fontWeight: '700' }}>账号清单</Text>
+                  <Text style={{ color: '#4e463e', fontSize: 12, fontWeight: '700' }}>Account list</Text>
                 </Pressable>
               )}
             >
               <Pressable onPress={() => router.push('/accounts/overview')}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                    <Text style={{ fontSize: 11, color: '#8a8072' }}>总数</Text>
+                    <Text style={{ fontSize: 11, color: '#8a8072' }}>Total</Text>
                     <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(totalAccounts)}</Text>
                   </View>
                   <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                    <Text style={{ fontSize: 11, color: '#8a8072' }}>健康</Text>
+                    <Text style={{ fontSize: 11, color: '#8a8072' }}>Healthy</Text>
                     <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(healthyAccounts)}</Text>
                   </View>
                   <View style={{ flex: 1, backgroundColor: colors.dangerBg, borderRadius: 14, padding: 12 }}>
-                    <Text style={{ fontSize: 11, color: colors.danger }}>异常</Text>
+                    <Text style={{ fontSize: 11, color: colors.danger }}>Error</Text>
                     <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.danger }}>{formatNumber(errorAccounts)}</Text>
                   </View>
                   <View style={{ flex: 1, backgroundColor: colors.mutedCard, borderRadius: 14, padding: 12 }}>
-                    <Text style={{ fontSize: 11, color: '#8a8072' }}>限流</Text>
+                    <Text style={{ fontSize: 11, color: '#8a8072' }}>Rate-limited</Text>
                     <Text style={{ marginTop: 6, fontSize: 18, fontWeight: '700', color: colors.text }}>{formatNumber(currentPageLimitedAccounts)}</Text>
                   </View>
                 </View>
-                <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>总数 / 健康 / 异常优先使用后端聚合字段；限流与繁忙基于当前页账号列表。点击进入账号清单。</Text>
+                <Text style={{ marginTop: 10, fontSize: 12, color: colors.subtext }}>Total / healthy / error use backend aggregates when available; rate-limited and busy are based on the current page of accounts. Tap to open the account list.</Text>
               </Pressable>
             </Section>
 
             {throughputPoints.length > 1 ? (
-              <LineTrendChart title="Token 吞吐" subtitle="当前时间范围内的 Token 变化趋势" points={throughputPoints} color="#a34d2d" formatValue={formatTokenDisplay} />
+              <LineTrendChart title="Token throughput" subtitle="Token trend for the selected time range" points={throughputPoints} color="#a34d2d" formatValue={formatTokenDisplay} />
             ) : null}
 
             {requestPoints.length > 1 ? (
-              <LineTrendChart title="请求趋势" subtitle="当前时间范围内的请求变化趋势" points={requestPoints} color="#1d5f55" formatValue={formatCompactNumber} />
+              <LineTrendChart title="Request trend" subtitle="Request trend for the selected time range" points={requestPoints} color="#1d5f55" formatValue={formatCompactNumber} />
             ) : null}
 
             {costPoints.length > 1 ? (
-              <LineTrendChart title="成本趋势" subtitle="当前时间范围内的成本变化趋势" points={costPoints} color="#7651c8" formatValue={formatMoney} />
+              <LineTrendChart title="Cost trend" subtitle="Cost trend for the selected time range" points={costPoints} color="#7651c8" formatValue={formatMoney} />
             ) : null}
 
             <BarChartCard
-              title="Token 结构"
-              subtitle="输入、输出、缓存读取占比"
+              title="Token breakdown"
+              subtitle="Share of input, output and cache-read tokens"
               items={[
-                { label: '输入 Token', value: totalInputTokens, color: '#1d5f55', hint: '请求进入模型前消耗的 token。' },
-                { label: '输出 Token', value: totalOutputTokens, color: '#d38b36', hint: '模型返回内容消耗的 token。' },
-                { label: '缓存读取 Token', value: totalCacheReadTokens, color: '#7d7468', hint: '命中缓存后复用的 token。' },
+                { label: 'Input tokens', value: totalInputTokens, color: '#1d5f55', hint: 'Tokens consumed before the request reaches the model.' },
+                { label: 'Output tokens', value: totalOutputTokens, color: '#d38b36', hint: 'Tokens consumed by the model response.' },
+                { label: 'Cache-read tokens', value: totalCacheReadTokens, color: '#7d7468', hint: 'Tokens reused from cache hits.' },
               ]}
               formatValue={formatTokenDisplay}
             />
 
             <DonutChartCard
-              title="账号健康"
-              subtitle="健康、繁忙、限流、异常分布"
-              centerLabel="总账号"
+              title="Account health"
+              subtitle="Healthy, busy, rate-limited and error distribution"
+              centerLabel="Total accounts"
               centerValue={formatNumber(totalAccounts)}
               segments={[
-                { label: '健康', value: healthyAccounts, color: '#1d5f55' },
-                { label: '繁忙', value: currentPageBusyAccounts, color: '#d38b36' },
-                { label: '限流', value: currentPageLimitedAccounts, color: '#7d7468' },
-                { label: '异常', value: errorAccounts, color: '#a34d2d' },
+                { label: 'Healthy', value: healthyAccounts, color: '#1d5f55' },
+                { label: 'Busy', value: currentPageBusyAccounts, color: '#d38b36' },
+                { label: 'Rate-limited', value: currentPageLimitedAccounts, color: '#7d7468' },
+                { label: 'Error', value: errorAccounts, color: '#a34d2d' },
               ]}
             />
 
             <BarChartCard
-              title="热点模型"
-              subtitle="当前时间范围内最活跃的模型"
+              title="Top models"
+              subtitle="Most active models in the selected time range"
               items={topModels.map((model) => ({
                 label: model.model,
                 value: model.total_tokens,
                 color: '#a34d2d',
-                meta: `请求 ${formatNumber(model.requests)} · 成本 ${formatMoney(model.cost)}`,
+                meta: `Requests ${formatNumber(model.requests)} · Cost ${formatMoney(model.cost)}`,
               }))}
               formatValue={formatCompactNumber}
             />
 
-            <Section title="趋势摘要" subtitle="最近几个统计点的请求、Token 和成本变化">
+            <Section title="Trend summary" subtitle="Requests, tokens and cost over the latest data points">
               {latestTrendPoints.length === 0 ? (
-                <Text style={{ fontSize: 14, color: colors.subtext }}>当前时间范围没有趋势数据。</Text>
+                <Text style={{ fontSize: 14, color: colors.subtext }}>No trend data for the selected time range.</Text>
               ) : (
                 <View style={{ gap: 12 }}>
                   <View style={{ gap: 10 }}>
@@ -419,7 +419,7 @@ export default function MonitorScreen() {
                         <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{point.date}</Text>
                         <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 11, color: '#8a8072' }}>请求</Text>
+                            <Text style={{ fontSize: 11, color: '#8a8072' }}>Requests</Text>
                             <Text style={{ marginTop: 4, fontSize: 15, fontWeight: '700', color: colors.text }}>{formatCompactNumber(point.requests)}</Text>
                           </View>
                           <View style={{ flex: 1 }}>
@@ -427,7 +427,7 @@ export default function MonitorScreen() {
                             <Text style={{ marginTop: 4, fontSize: 15, fontWeight: '700', color: colors.text }}>{formatTokenDisplay(point.total_tokens)}</Text>
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 11, color: '#8a8072' }}>成本</Text>
+                            <Text style={{ fontSize: 11, color: '#8a8072' }}>Cost</Text>
                             <Text style={{ marginTop: 4, fontSize: 15, fontWeight: '700', color: colors.text }}>{formatMoney(point.cost)}</Text>
                           </View>
                         </View>

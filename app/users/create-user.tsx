@@ -28,7 +28,7 @@ function parseJsonObject(raw: string, fieldLabel: string): Record<string, JsonVa
   const parsed = JSON.parse(raw) as unknown;
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`${fieldLabel} 必须是 JSON 对象。`);
+    throw new Error(`${fieldLabel} must be a JSON object.`);
   }
 
   const entries = Object.entries(parsed as Record<string, unknown>);
@@ -42,7 +42,7 @@ function parseJsonObject(raw: string, fieldLabel: string): Record<string, JsonVa
       && valueType !== 'number'
       && valueType !== 'boolean'
     ) {
-      throw new Error(`${fieldLabel} 仅支持 string / number / boolean / null。`);
+      throw new Error(`${fieldLabel} only supports string / number / boolean / null.`);
     }
   }
 
@@ -59,19 +59,19 @@ function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先到服务器页填写服务地址。';
+        return 'Set the server URL on the Servers page first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先到服务器页填写 Admin Token。';
+        return 'Set the Admin Token on the Servers page first.';
       case 'INVALID_SERVER_RESPONSE':
-        return '服务返回格式异常，请确认后端接口可用并检查网关日志。';
+        return 'The service returned an unexpected format. Check that the backend API is up and review the gateway logs.';
       case 'REQUEST_FAILED':
-        return '请求失败，请检查服务地址、Token 和网络连通性。';
+        return 'Request failed. Check the server URL, token and network connection.';
       default:
         return error.message;
     }
   }
 
-  return '创建用户失败，请稍后重试。';
+  return 'Failed to create the user. Please try again later.';
 }
 
 export default function CreateUserScreen() {
@@ -117,7 +117,7 @@ export default function CreateUserScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '添加用户 (/admin/users)' }} />
+      <Stack.Screen options={{ title: 'Add user (/admin/users)' }} />
       <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.page }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
           <View
@@ -130,13 +130,13 @@ export default function CreateUserScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>基础信息</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Basic info</Text>
 
-            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>邮箱</Text>
+            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>Email</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="例如：user@example.com"
+              placeholder="e.g. user@example.com"
               placeholderTextColor="#9a9082"
               autoCapitalize="none"
               style={{
@@ -151,11 +151,11 @@ export default function CreateUserScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>密码</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Password</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
-              placeholder="请输入密码"
+              placeholder="Enter a password"
               placeholderTextColor="#9a9082"
               secureTextEntry
               autoCapitalize="none"
@@ -171,11 +171,11 @@ export default function CreateUserScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>用户名（可选）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Username (optional)</Text>
             <TextInput
               value={username}
               onChangeText={setUsername}
-              placeholder="例如：demo-user"
+              placeholder="e.g. demo-user"
               placeholderTextColor="#9a9082"
               autoCapitalize="none"
               style={{
@@ -190,11 +190,11 @@ export default function CreateUserScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>备注（可选）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Notes (optional)</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="例如：测试用户"
+              placeholder="e.g. Test user"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -218,9 +218,9 @@ export default function CreateUserScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>权限与状态</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Role and status</Text>
 
-            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>角色</Text>
+            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>Role</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
               {(['user', 'admin'] as const).map((item) => {
                 const active = role === item;
@@ -244,7 +244,7 @@ export default function CreateUserScreen() {
               })}
             </View>
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>状态</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Status</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {(['active', 'disabled'] as const).map((item) => {
                 const active = status === item;
@@ -279,14 +279,14 @@ export default function CreateUserScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>高级参数（可选）</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Advanced parameters (optional)</Text>
 
-            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>余额 balance</Text>
+            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>Balance</Text>
             <TextInput
               value={balance}
               onChangeText={setBalance}
               keyboardType="decimal-pad"
-              placeholder="例如：100"
+              placeholder="e.g. 100"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -300,12 +300,12 @@ export default function CreateUserScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>并发 concurrency</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Concurrency</Text>
             <TextInput
               value={concurrency}
               onChangeText={setConcurrency}
               keyboardType="number-pad"
-              placeholder="例如：5"
+              placeholder="e.g. 5"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -319,13 +319,13 @@ export default function CreateUserScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>extra（可选，JSON 对象）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>extra (optional, JSON object)</Text>
             <TextInput
               value={extraJson}
               onChangeText={setExtraJson}
               multiline
               textAlignVertical="top"
-              placeholder='例如：{"daily_limit":10}'
+              placeholder='e.g. {"daily_limit":10}'
               placeholderTextColor="#9a9082"
               style={{
                 minHeight: 96,
@@ -359,7 +359,7 @@ export default function CreateUserScreen() {
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>{createMutation.isPending ? '提交中...' : '创建用户'}</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>{createMutation.isPending ? 'Submitting...' : 'Create user'}</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>

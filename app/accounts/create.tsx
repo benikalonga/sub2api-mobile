@@ -44,7 +44,7 @@ function parseObjectInput(raw: string, fieldLabel: string): JsonRecord | undefin
   if (!raw.trim()) return undefined;
   const parsed = JSON.parse(raw) as unknown;
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`${fieldLabel} 必须是 JSON 对象。`);
+    throw new Error(`${fieldLabel} must be a JSON object.`);
   }
 
   const entries = Object.entries(parsed as Record<string, unknown>);
@@ -57,7 +57,7 @@ function parseObjectInput(raw: string, fieldLabel: string): JsonRecord | undefin
       && valueType !== 'number'
       && valueType !== 'boolean'
     ) {
-      throw new Error(`${fieldLabel} 仅支持 string / number / boolean / null。`);
+      throw new Error(`${fieldLabel} only supports string / number / boolean / null.`);
     }
   }
 
@@ -68,19 +68,19 @@ function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     switch (error.message) {
       case 'BASE_URL_REQUIRED':
-        return '请先到服务器页填写服务地址。';
+        return 'Set the server URL on the Servers page first.';
       case 'ADMIN_API_KEY_REQUIRED':
-        return '请先到服务器页填写 Admin Token。';
+        return 'Set the Admin Token on the Servers page first.';
       case 'INVALID_SERVER_RESPONSE':
-        return '服务返回格式异常，请确认后端接口可用并检查网关日志。';
+        return 'The service returned an unexpected format. Check that the backend API is up and review the gateway logs.';
       case 'REQUEST_FAILED':
-        return '请求失败，请检查服务地址、Token 和网络连通性。';
+        return 'Request failed. Check the server URL, token and network connection.';
       default:
         return error.message;
     }
   }
 
-  return '创建账号失败，请稍后重试。';
+  return 'Failed to create the account. Please try again later.';
 }
 
 export default function CreateAdminAccountScreen() {
@@ -104,7 +104,7 @@ export default function CreateAdminAccountScreen() {
     mutationFn: async () => {
       const credentials = parseObjectInput(credentialsJson, 'credentials');
       if (!credentials) {
-        throw new Error('credentials 不能为空。');
+        throw new Error('credentials cannot be empty.');
       }
 
       const extra = parseObjectInput(extraJson, 'extra');
@@ -137,7 +137,7 @@ export default function CreateAdminAccountScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '添加账号 (/admin/accounts)' }} />
+      <Stack.Screen options={{ title: 'Add account (/admin/accounts)' }} />
       <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.page }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
           <View
@@ -150,13 +150,13 @@ export default function CreateAdminAccountScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>基础信息</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Basic info</Text>
 
-            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>账号名称</Text>
+            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>Account name</Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="例如：openai-main"
+              placeholder="e.g. openai-main"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -170,7 +170,7 @@ export default function CreateAdminAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>平台</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Platform</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
               {PLATFORM_OPTIONS.map((item) => {
                 const active = platform === item;
@@ -193,7 +193,7 @@ export default function CreateAdminAccountScreen() {
               })}
             </View>
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>类型</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Type</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
               {ACCOUNT_TYPE_OPTIONS.map((item) => {
                 const active = type === item;
@@ -216,11 +216,11 @@ export default function CreateAdminAccountScreen() {
               })}
             </View>
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>备注（可选）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>Notes (optional)</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="例如：主线路账号"
+              placeholder="e.g. Main route account"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -244,18 +244,18 @@ export default function CreateAdminAccountScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>请求体字段</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Request body fields</Text>
             <Text style={{ marginTop: 6, fontSize: 12, color: colors.subtext }}>
-              该页面直接创建 /admin/accounts，credentials 必填，extra 可选。
+              This page calls /admin/accounts directly. credentials is required, extra is optional.
             </Text>
 
-            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>credentials（JSON 对象）</Text>
+            <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>credentials (JSON object)</Text>
             <TextInput
               value={credentialsJson}
               onChangeText={setCredentialsJson}
               multiline
               textAlignVertical="top"
-              placeholder='例如：{"base_url":"https://api.example.com","api_key":"sk-..."}'
+              placeholder='e.g. {"base_url":"https://api.example.com","api_key":"sk-..."}'
               placeholderTextColor="#9a9082"
               style={{
                 minHeight: 120,
@@ -270,13 +270,13 @@ export default function CreateAdminAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>extra（可选，JSON 对象）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>extra (optional, JSON object)</Text>
             <TextInput
               value={extraJson}
               onChangeText={setExtraJson}
               multiline
               textAlignVertical="top"
-              placeholder='例如：{"window_cost_limit":50}'
+              placeholder='e.g. {"window_cost_limit":50}'
               placeholderTextColor="#9a9082"
               style={{
                 minHeight: 96,
@@ -301,14 +301,14 @@ export default function CreateAdminAccountScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>可选参数</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Optional parameters</Text>
 
             <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 12, color: colors.subtext }}>proxy_id</Text>
             <TextInput
               value={proxyId}
               onChangeText={setProxyId}
               keyboardType="number-pad"
-              placeholder="例如：3"
+              placeholder="e.g. 3"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -327,7 +327,7 @@ export default function CreateAdminAccountScreen() {
               value={concurrency}
               onChangeText={setConcurrency}
               keyboardType="number-pad"
-              placeholder="例如：10"
+              placeholder="e.g. 10"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -346,7 +346,7 @@ export default function CreateAdminAccountScreen() {
               value={priority}
               onChangeText={setPriority}
               keyboardType="number-pad"
-              placeholder="例如：0"
+              placeholder="e.g. 0"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -365,7 +365,7 @@ export default function CreateAdminAccountScreen() {
               value={rateMultiplier}
               onChangeText={setRateMultiplier}
               keyboardType="decimal-pad"
-              placeholder="例如：1"
+              placeholder="e.g. 1"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -379,11 +379,11 @@ export default function CreateAdminAccountScreen() {
               }}
             />
 
-            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>group_ids（逗号分隔）</Text>
+            <Text style={{ marginBottom: 6, fontSize: 12, color: colors.subtext }}>group_ids (comma-separated)</Text>
             <TextInput
               value={groupIds}
               onChangeText={setGroupIds}
-              placeholder="例如：1,2,5"
+              placeholder="e.g. 1,2,5"
               placeholderTextColor="#9a9082"
               style={{
                 backgroundColor: colors.muted,
@@ -416,7 +416,7 @@ export default function CreateAdminAccountScreen() {
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>{createMutation.isPending ? '提交中...' : '创建账号'}</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>{createMutation.isPending ? 'Submitting...' : 'Create account'}</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
