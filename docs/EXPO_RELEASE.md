@@ -160,30 +160,6 @@ Confirm:
 
 `app.json` has no custom `scheme`, or the native shell is outdated and needs a rebuild.
 
-## GitHub Actions build
-
-The repository includes a workflow: `.github/workflows/eas-build.yml`
-
-Before using it, add this secret to the GitHub repository:
-
-- `EXPO_TOKEN`
-
-To trigger it:
-
-1. Open the repository's `Actions` tab
-2. Select `EAS Build`
-3. Click `Run workflow`
-4. Choose:
-   - `profile`: `preview` or `production`
-   - `platform`: `android` / `ios` / `all`
-
-The workflow runs:
-
-```bash
-npm ci
-npx eas build --non-interactive --profile <profile> --platform <platform>
-```
-
 ## Production build
 
 ```bash
